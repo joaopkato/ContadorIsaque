@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌙 Controle de Sono — Bebê</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f4ef;
+    --surface: #ffffff;
+    --surface2: #fdf9f4;
+    --border: #e8e2d9;
+    --text: #2c2825;
+    --muted: #9b8f84;
+    --accent: #b5876b;
+    --accent-soft: #f0e6dc;
+    --moon: #7a9db5;
+    --moon-soft: #e3edf4;
+    --sun: #d4a84b;
+    --sun-soft: #fdf3e0;
+    --green: #7ab5a0;
+    --green-soft: #e3f4ef;
+    --red-soft: #fce8e8;
+    --red: #c47a7a;
+    --shadow: 0 2px 12px rgba(44,40,37,0.07);
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ── Main ── */
+  .main { margin-left: 0; flex: 1; padding: 0 0 80px; max-width: 100%; }
+
+  /* ── Page header ── */
+  .page-header { margin-bottom: 36px; }
+  .page-emoji { font-size: 52px; margin-bottom: 10px; display: block; }
+  .page-title {
+    font-family: 'Lora', serif; font-size: 36px; font-weight: 600;
+    margin-bottom: 6px; outline: none; border: none; background: transparent; width: 100%;
+  }
+  .page-title:empty:before { content: attr(data-placeholder); color: var(--muted); }
+  .page-subtitle {
+    font-size: 14px; color: var(--muted);
+    outline: none; border: none; background: transparent; width: 100%;
+  }
+  .page-subtitle:empty:before { content: attr(data-placeholder); color: #ccc; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* ── Section heading ── */
+  .section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .section-heading h2 { font-family: 'Lora', serif; font-size: 18px; font-weight: 600; }
+  .section-heading .badge {
+    font-size: 11px; background: var(--accent-soft); color: var(--accent);
+    padding: 2px 8px; border-radius: 20px; font-weight: 500;
+  }
+
+  /* ── Next nap banner ── */
+  .next-nap-banner {
+    display: flex; align-items: center; gap: 20px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.3s ease both;
+    transition: border-color 0.4s, background 0.4s;
+    flex-wrap: wrap;
+  }
+  .next-nap-banner.soon {
+    border-color: var(--sun);
+    background: linear-gradient(135deg, #fffdf5, #fef8e3);
+  }
+  .next-nap-banner.now {
+    border-color: var(--green);
+    background: linear-gradient(135deg, #f4fdf9, #e2f6ef);
+  }
+  .nnb-icon { font-size: 30px; flex-shrink: 0; }
+  .nnb-body { flex: 1; min-width: 160px; }
+  .nnb-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); font-weight: 500; margin-bottom: 2px;
+  }
+  .next-nap-banner.soon .nnb-label { color: var(--sun); }
+  .next-nap-banner.now  .nnb-label { color: var(--green); }
+  .nnb-countdown {
+    font-family: 'Lora', serif; font-size: 26px; font-weight: 600;
+    color: var(--text); letter-spacing: -0.3px;
+  }
+  .next-nap-banner.soon .nnb-countdown { color: var(--sun); }
+  .next-nap-banner.now  .nnb-countdown { color: var(--green); }
+  .nnb-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .nnb-config { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+  .nnb-config label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .nnb-config input[type="number"] {
+    width: 58px; border: 1px solid var(--border); border-radius: 8px;
+    padding: 5px 8px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    background: var(--bg); color: var(--text); outline: none; text-align: center;
+    transition: border 0.2s;
+  }
+  .nnb-config input[type="number"]:focus { border-color: var(--moon); }
+  .nnb-config span { font-size: 12px; color: var(--muted); }
+
+  /* ── Summary ── */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+    margin-bottom: 20px; animation: fadeUp 0.4s 0.05s ease both;
+  }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+  }
+  .summary-card .sc-icon { font-size: 20px; margin-bottom: 6px; }
+  .summary-card .sc-value { font-family: 'Lora', serif; font-size: 24px; font-weight: 600; }
+  .summary-card .sc-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Live tracker ── */
+  .live-tracker {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 22px 28px;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 24px;
+    transition: border-color 0.3s, background 0.3s;
+  }
+  .live-tracker.state-sleeping {
+    border-color: var(--moon);
+    background: linear-gradient(135deg, #f7fbff, #eef5fb);
+  }
+  .live-tracker.state-paused {
+    border-color: var(--sun);
+    background: linear-gradient(135deg, #fffcf5, #fdf5e0);
+  }
+  .lt-orb {
+    flex-shrink: 0; width: 72px; height: 72px; border-radius: 50%;
+    background: var(--moon-soft); border: 2.5px solid transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: all 0.4s;
+  }
+  .state-sleeping .lt-orb {
+    background: radial-gradient(circle at 35% 35%, #c8dcea, #7a9db5);
+    border-color: var(--moon); animation: orbPulse 2.5s ease-in-out infinite;
+  }
+  .state-paused .lt-orb {
+    background: radial-gradient(circle at 35% 35%, #fde9b0, #d4a84b);
+    border-color: var(--sun);
+  }
+  .lt-orb .orb-icon { font-size: 26px; line-height: 1; }
+  .lt-orb .orb-time {
+    font-family: 'Lora', serif; font-size: 11px; font-weight: 600; color: white;
+    margin-top: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  @keyframes orbPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(122,157,181,0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(122,157,181,0); }
+  }
+  .lt-body { flex: 1; min-width: 0; }
+  .lt-state-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); font-weight: 500; margin-bottom: 3px;
+  }
+  .state-sleeping .lt-state-label { color: var(--moon); }
+  .state-paused   .lt-state-label { color: var(--sun); }
+  .lt-elapsed {
+    font-family: 'Lora', serif; font-size: 28px; font-weight: 600;
+    color: var(--text); margin-bottom: 4px; transition: color 0.3s; letter-spacing: -0.5px;
+  }
+  .state-sleeping .lt-elapsed { color: var(--moon); }
+  .state-paused   .lt-elapsed { color: var(--sun); }
+  .lt-meta { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .lt-pauses { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .pause-chip {
+    background: var(--sun-soft); color: var(--sun);
+    border-radius: 20px; padding: 2px 9px; font-size: 11px; font-weight: 500;
+  }
+  .lt-buttons { display: flex; gap: 8px; align-items: center; }
+  .btn-tracker-main {
+    padding: 10px 22px; border-radius: 10px; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 8px; transition: all 0.18s;
+  }
+  .btn-tracker-main.start  { background: var(--moon); color: white; box-shadow: 0 3px 12px rgba(122,157,181,0.4); }
+  .btn-tracker-main.start:hover  { background: #6a8da5; transform: translateY(-1px); }
+  .btn-tracker-main.pause  { background: var(--sun);  color: white; box-shadow: 0 3px 12px rgba(212,168,75,0.4); }
+  .btn-tracker-main.pause:hover  { background: #c09030; transform: translateY(-1px); }
+  .btn-tracker-main.resume { background: var(--moon); color: white; box-shadow: 0 3px 12px rgba(122,157,181,0.4); }
+  .btn-tracker-main.resume:hover { background: #6a8da5; transform: translateY(-1px); }
+  .btn-tracker-end {
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid #f0d0d0; background: transparent; color: var(--red);
+    font-family: 'DM Sans', sans-serif; display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn-tracker-end:hover { background: var(--red-soft); border-color: var(--red); }
+  .btn-tracker-end:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-tracker-end:disabled:hover { background: transparent; border-color: #f0d0d0; }
+
+  /* ── Manual form ── */
+  .manual-form {
+    background: var(--surface);
+    border: 1px solid var(--border); border-top: 1px dashed #e0d8ce;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 20px 28px 26px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .manual-form-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--muted); font-weight: 500; margin-bottom: 14px;
+  }
+  .form-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .input-group { display: flex; flex-direction: column; gap: 4px; }
+  .input-group label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .input-group input[type="time"],
+  .input-group input[type="date"],
+  .input-group input[type="text"],
+  .input-group textarea,
+  .input-group select {
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    background: var(--bg); color: var(--text); outline: none; transition: border 0.2s;
+  }
+  .input-group input:focus,
+  .input-group select:focus,
+  .input-group textarea:focus { border-color: var(--moon); }
+  .input-group textarea { resize: vertical; min-height: 60px; line-height: 1.55; width: 100%; }
+
+  /* Pauses in manual form */
+  .pauses-section { margin-bottom: 14px; }
+  .pauses-section-label {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .pause-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--sun-soft); border-radius: 8px; padding: 7px 10px; margin-bottom: 6px;
+  }
+  .pause-row .pr-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .pause-row input[type="time"] {
+    border: 1px solid #e8d8a0; border-radius: 6px; padding: 4px 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px;
+    background: white; color: var(--text); outline: none; width: 96px;
+  }
+  .pause-row input[type="time"]:focus { border-color: var(--sun); }
+  .pause-remove {
+    background: none; border: none; cursor: pointer; color: #ccc;
+    font-size: 16px; padding: 1px 5px; border-radius: 4px; transition: all 0.12s; margin-left: auto;
+  }
+  .pause-remove:hover { color: var(--red); background: var(--red-soft); }
+  .btn-add-pause {
+    font-size: 12px; color: var(--sun); background: var(--sun-soft);
+    border: 1px dashed #e0c060; border-radius: 7px; padding: 5px 12px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 500;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-add-pause:hover { background: #fdefc0; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .btn {
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: none; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--moon); color: white; }
+  .btn-primary:hover { background: #6a8da5; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+  /* ── Table ── */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    box-shadow: var(--shadow); margin-bottom: 28px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th {
+    text-align: left; padding: 10px 14px;
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f2ede8; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fdfaf7; }
+  .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 500; }
+  .tag-night   { background: var(--moon-soft);  color: var(--moon); }
+  .tag-nap     { background: var(--sun-soft);   color: var(--sun); }
+  .tag-morning { background: var(--green-soft); color: var(--green); }
+  .duration-pill {
+    background: var(--accent-soft); color: var(--accent);
+    font-family: 'Lora', serif; font-size: 12px; font-weight: 600;
+    padding: 2px 9px; border-radius: 20px;
+  }
+  .note-cell { color: var(--muted); font-size: 12px; max-width: 160px; }
+  .pause-cell { color: var(--sun); font-size: 11.5px; }
+  .delete-btn {
+    background: none; border: none; cursor: pointer; color: #ddd;
+    font-size: 16px; padding: 2px 6px; border-radius: 4px; transition: all 0.15s;
+  }
+  .delete-btn:hover { color: var(--red); background: var(--red-soft); }
+
+  /* ── Notes ── */
+  .notes-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow);
+  }
+  .notes-block textarea {
+    width: 100%; border: none; outline: none; resize: none;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
+    background: transparent; line-height: 1.7; min-height: 90px;
+  }
+  .notes-block textarea::placeholder { color: #ccc; }
+
+  /* ── Empty state ── */
+  .empty-state { text-align: center; padding: 36px 20px; color: var(--muted); }
+  .empty-state .empty-emoji { font-size: 34px; margin-bottom: 8px; }
+  .empty-state p { font-size: 13.5px; }
+
+  /* ── Topbar (sempre visível) ── */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px;
+    background: #f0ece5;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-title {
+    font-family: 'Lora', serif; font-size: 18px; font-weight: 600;
+    color: var(--text); flex: 1;
+  }
+  .conn-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; color: var(--muted);
+    transition: all 0.3s;
+  }
+  .conn-badge.connected  { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+  .conn-badge.error      { border-color: var(--red);   background: var(--red-soft);   color: var(--red); }
+
+  @media (max-width: 768px) {
+  @media (max-width: 768px) {
+    .topbar { padding: 12px 16px; }
+    .topbar-title { font-size: 16px; }
+    .conn-badge span.conn-label { display: none; }
+    .main { padding: 0 0 120px; }
+    .mobile-content { padding: 16px 16px 0; }
+    .page-header { display: none; }
+    .summary-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .summary-card:nth-child(3) { grid-column: span 2; }
+    .summary-card { padding: 12px 14px; }
+    .summary-card .sc-value { font-size: 20px; }
+    .next-nap-banner { flex-direction: column; padding: 14px 16px; gap: 10px; margin-bottom: 14px; }
+    .nnb-body { width: 100%; }
+    .nnb-countdown { font-size: 26px; }
+    .nnb-icon { display: none; }
+    .nnb-config { margin-left: 0; width: 100%; justify-content: flex-start; border-top: 1px solid var(--border); padding-top: 10px; }
+    .live-tracker { flex-direction: row; align-items: flex-start; flex-wrap: wrap; gap: 12px; border-radius: var(--radius) var(--radius) 0 0; padding: 16px; }
+    .lt-orb { width: 54px; height: 54px; flex-shrink: 0; }
+    .lt-orb .orb-icon { font-size: 20px; }
+    .lt-orb .orb-time { font-size: 10px; }
+    .lt-body { flex: 1; min-width: 0; }
+    .lt-elapsed { font-size: 22px; }
+    .lt-buttons { flex-wrap: wrap; gap: 8px; }
+    .btn-tracker-main { padding: 9px 16px; font-size: 13px; flex: 1; justify-content: center; }
+    .btn-tracker-end { padding: 9px 14px; font-size: 12px; }
+    .manual-form { padding: 14px 16px 18px; }
+    .form-row { flex-direction: column; gap: 10px; }
+    .form-row .input-group { width: 100%; }
+    .form-row .input-group input[type="date"],
+    .form-row .input-group input[type="time"],
+    .form-row .input-group select { width: 100%; min-width: 0; font-size: 15px; }
+    .form-row .input-group:last-child .btn { width: 100%; justify-content: center; height: 40px; }
+    .table-wrap { overflow-x: visible; }
+    table, thead, tbody, tr, th, td { display: block; }
+    thead { display: none; }
+    tbody tr { background: white; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 10px 14px; }
+    tbody tr:hover { background: white; }
+    tbody td { border: none; padding: 3px 0; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    tbody td:empty { display: none; }
+    tbody td::before { content: attr(data-label); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); min-width: 60px; flex-shrink: 0; }
+    tbody td:last-child { justify-content: flex-end; margin-top: 4px; }
+    .notes-block { padding: 14px 16px; }
+    .divider { margin: 18px 0; }
+    .section-heading { margin-bottom: 10px; }
+  }
+
+  @media (min-width: 769px) {
+    .main { max-width: 860px; margin: 0 auto; }
+    .topbar { padding: 16px 40px; max-width: 860px; margin: 0 auto; }
+    .mobile-content { padding: 32px 40px 0; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+  <!-- ── Topbar ── -->
+  <header class="topbar">
+    <span class="topbar-title">🌙 Sono do Bebê</span>
+    <div class="conn-badge" id="conn-badge">
+      <span id="conn-icon">🔄</span>
+      <span class="conn-label" id="conn-label">Conectando…</span>
+    </div>
+  </header>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="mobile-content">
+
+    <header class="page-header">
+      <span class="page-emoji">🌙</span>
+      <div class="page-title" contenteditable="true" data-placeholder="Nome do bebê...">Controle de Sono do Bebê</div>
+      <div class="page-subtitle" contenteditable="true" data-placeholder="Adicione uma descrição...">Registro diário de sono · Atualize os horários conforme necessário</div>
+    </header>
+
+    <!-- Summary -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="sc-icon">😴</div>
+        <div class="sc-value" id="sum-total">0h 0m</div>
+        <div class="sc-label">Total dormido hoje</div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-icon">🌙</div>
+        <div class="sc-value" id="sum-night">0</div>
+        <div class="sc-label">Sonos noturnos</div>
+      </div>
+      <div class="summary-card">
+        <div class="sc-icon">☀️</div>
+        <div class="sc-value" id="sum-nap">0</div>
+        <div class="sc-label">Sonecas</div>
+      </div>
+    </div>
+
+    <!-- Próxima soneca -->
+    <div class="next-nap-banner" id="next-nap-banner">
+      <div class="nnb-icon" id="nnb-icon">⏳</div>
+      <div class="nnb-body">
+        <div class="nnb-label" id="nnb-label">Próxima soneca em</div>
+        <div class="nnb-countdown" id="nnb-countdown">—</div>
+        <div class="nnb-sub" id="nnb-sub">Registre uma soneca para calcular</div>
+      </div>
+      <div class="nnb-config">
+        <label>Janela de vigília</label>
+        <input type="number" id="inp-window" min="15" max="360" step="5" value="90" onchange="saveWindow()">
+        <span>min</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Registrar Sono -->
+    <div class="section-heading"><h2>Registrar Sono</h2></div>
+
+    <!-- Live tracker -->
+    <div class="live-tracker" id="live-tracker">
+      <div class="lt-orb" id="lt-orb">
+        <span class="orb-icon" id="lt-orb-icon">🌙</span>
+        <span class="orb-time" id="lt-orb-time"></span>
+      </div>
+      <div class="lt-body">
+        <div class="lt-state-label" id="lt-state-label">Rastreador ao vivo</div>
+        <div class="lt-elapsed" id="lt-elapsed">00:00:00</div>
+        <div class="lt-meta"><span id="lt-started">Pressione iniciar para começar</span></div>
+        <div class="lt-pauses" id="lt-pauses"></div>
+        <div class="lt-buttons">
+          <button class="btn-tracker-main start" id="btn-main-tracker" onclick="trackerToggle()">
+            <span id="btn-main-icon">▶</span>
+            <span id="btn-main-label">Iniciar sono</span>
+          </button>
+          <button class="btn-tracker-end" id="btn-end-tracker" onclick="trackerEnd()" disabled>
+            ⏹ Finalizar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual form -->
+    <div class="manual-form">
+      <div class="manual-form-title">Ou adicionar manualmente</div>
+
+      <div class="form-row">
+        <div class="input-group">
+          <label>Data</label>
+          <input type="date" id="inp-date" style="min-width:130px;">
+        </div>
+        <div class="input-group">
+          <label>Início</label>
+          <input type="time" id="inp-start">
+        </div>
+        <div class="input-group">
+          <label>Fim</label>
+          <input type="time" id="inp-end">
+        </div>
+        <div class="input-group">
+          <label>Tipo</label>
+          <select id="inp-type">
+            <option value="night">🌙 Sono noturno</option>
+            <option value="nap">☀️ Soneca</option>
+            <option value="morning">🌅 Manhã</option>
+          </select>
+        </div>
+        <div class="input-group" style="align-self:flex-end;">
+          <button class="btn btn-ghost" onclick="fillNow()" style="height:33px;padding:0 12px;">⏱ Agora</button>
+        </div>
+      </div>
+
+      <!-- Pauses -->
+      <div class="pauses-section">
+        <div class="pauses-section-label">Pausas</div>
+        <div id="pauses-list"></div>
+        <button class="btn-add-pause" onclick="addPauseRow()">＋ Adicionar pausa</button>
+      </div>
+
+      <!-- Observações -->
+      <div class="input-group">
+        <label>Observações</label>
+        <textarea id="inp-note" placeholder="Anotações gerais sobre esse período de sono..."></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addSleep()">＋ Adicionar sono</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Histórico -->
+    <div class="section-heading">
+      <h2>Histórico</h2>
+      <span class="badge" id="count-badge">0 registros</span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Duração</th>
+            <th>Pausas</th>
+            <th>Observação</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sleep-log">
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <div class="empty-emoji">🌙</div>
+                <p>Nenhum sono registrado ainda.<br>Adicione o primeiro acima!</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Notas do dia -->
+    <div class="section-heading"><h2>Notas do dia</h2></div>
+    <div class="notes-block">
+      <textarea id="daily-notes" placeholder="Anote observações gerais, mudanças na rotina, dentes nascendo, vacinas..."></textarea>
+    </div>
+
+    </div><!-- /mobile-content -->
+  </main>
+
+<!-- ══════════════════════════════════════════
+     PASSO 1 — Cole aqui o bloco <script type="module"> que o
+     Firebase gera para você (Project Settings > Your apps > CDN).
+     Ele tem esta forma:
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/...";
+  ...
+  const app = initializeApp(firebaseConfig);
+
+     PASSO 2 — Substitua COLE_SUA_DATABASE_URL abaixo pela URL
+     do seu Realtime Database (ex: https://nome-default-rtdb.firebaseio.com)
+═══════════════════════════════════════════ -->
+
+<script type="module">
+  import { initializeApp }                           from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+  import { getDatabase, ref, push, remove, onValue, set }
+                                                     from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+  // ─── ▼ COLE SUAS CREDENCIAIS AQUI ▼ ───────────────────────────
+  const firebaseConfig = {
+    apiKey:            "COLE_SUA_API_KEY",
+    authDomain:        "COLE_SEU_AUTH_DOMAIN",
+    databaseURL:       "COLE_SUA_DATABASE_URL",
+    projectId:         "COLE_SEU_PROJECT_ID",
+    storageBucket:     "COLE_SEU_STORAGE_BUCKET",
+    messagingSenderId: "COLE_SEU_SENDER_ID",
+    appId:             "COLE_SEU_APP_ID"
+  };
+  // ─── ▲ ────────────────────────────────────────────────────────
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  const recordsRef = ref(db, 'sleepRecords');
+  const windowRef  = ref(db, 'settings/windowMinutes');
+  const notesRef   = ref(db, 'settings/dailyNotes');
+
+  // ─────────────────────────────────────────
+  //  STATE (local — sincronizado pelo Firebase)
+  // ─────────────────────────────────────────
+  let sleepRecords   = [];          // preenchido pelo listener
+  let windowMinutes  = 90;
+  let trackerState   = 'idle';
+  let trackerStart   = null;
+  let trackerPauses  = [];
+  let manualPauseCount = 0;
+  let fbKeys         = {};          // id numérico → firebase key
+
+  // ─────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────
+  const todayObj = new Date();
+  document.getElementById('inp-date').value  = formatDate(todayObj);
+  document.getElementById('inp-start').value = formatTime(todayObj);
+
+  // Mostra indicador de conexão
+  showStatus('connecting');
+
+  // ── Listener: registros de sono ──────────
+  onValue(recordsRef, snap => {
+    sleepRecords = [];
+    fbKeys = {};
+    snap.forEach(child => {
+      const r = child.val();
+      sleepRecords.push(r);
+      fbKeys[r.id] = child.key;
+    });
+    // Ordena do mais recente para o mais antigo
+    sleepRecords.sort((a, b) => {
+      const da = a.date + 'T' + a.start;
+      const db2 = b.date + 'T' + b.start;
+      return db2.localeCompare(da);
+    });
+    renderTable();
+    updateSummary();
+    updateNextNap();
+    showStatus('connected');
+  });
+
+  // ── Listener: janela de vigília ───────────
+  onValue(windowRef, snap => {
+    if (snap.exists()) {
+      windowMinutes = snap.val();
+      document.getElementById('inp-window').value = windowMinutes;
+      updateNextNap();
+    }
+  });
+
+  // ── Listener: notas do dia ────────────────
+  onValue(notesRef, snap => {
+    if (snap.exists()) {
+      document.getElementById('daily-notes').value = snap.val();
+    }
+  });
+
+  // Debounce para notas (só salva 1s após parar de digitar)
+  let notesTimer;
+  document.getElementById('daily-notes').addEventListener('input', () => {
+    clearTimeout(notesTimer);
+    notesTimer = setTimeout(() => set(notesRef, document.getElementById('daily-notes').value), 1000);
+  });
+
+  // Ticker a cada segundo
+  setInterval(() => {
+    if (trackerState === 'idle')     document.getElementById('lt-orb-time').textContent = formatTime(new Date());
+    if (trackerState === 'sleeping') updateElapsedDisplay();
+    updateNextNap();
+  }, 1000);
+
+  // ─────────────────────────────────────────
+  //  STATUS DE CONEXÃO
+  // ─────────────────────────────────────────
+  function showStatus(state) {
+    const badge = document.getElementById('conn-badge');
+    const icon  = document.getElementById('conn-icon');
+    const label = document.getElementById('conn-label');
+    const map   = {
+      connecting: ['🔄', '',          'Conectando…'],
+      connected:  ['🟢', 'connected', 'Sincronizado'],
+      error:      ['🔴', 'error',     'Erro de conexão']
+    };
+    const [ic, cls, txt] = map[state] || map.error;
+    if (icon)  icon.textContent  = ic;
+    if (label) label.textContent = txt;
+    if (badge) badge.className   = 'conn-badge' + (cls ? ' ' + cls : '');
+  }
+
+  // ─────────────────────────────────────────
+  //  JANELA DE VIGÍLIA
+  // ─────────────────────────────────────────
+  window.saveWindow = function() {
+    const val = parseInt(document.getElementById('inp-window').value);
+    if (!val || val < 10) return;
+    windowMinutes = val;
+    set(windowRef, val);
+    updateNextNap();
+  };
+
+  // ─────────────────────────────────────────
+  //  PRÓXIMA SONECA
+  // ─────────────────────────────────────────
+  function updateNextNap() {
+    const todayStr  = formatDate(new Date());
+    const banner    = document.getElementById('next-nap-banner');
+    const icon      = document.getElementById('nnb-icon');
+    const label     = document.getElementById('nnb-label');
+    const countdown = document.getElementById('nnb-countdown');
+    const sub       = document.getElementById('nnb-sub');
+
+    const todayNaps = sleepRecords
+      .filter(r => r.date === todayStr && (r.type === 'nap' || r.type === 'morning'))
+      .sort((a, b) => b.end.localeCompare(a.end));
+
+    if (todayNaps.length === 0) {
+      banner.className = 'next-nap-banner';
+      icon.textContent = '⏳'; label.textContent = 'Próxima soneca';
+      countdown.textContent = '—'; sub.textContent = 'Nenhuma soneca registrada hoje';
+      return;
+    }
+
+    const lastEnd  = todayNaps[0].end;
+    const [lh, lm] = lastEnd.split(':').map(Number);
+    const now      = new Date();
+    const nowMins  = now.getHours() * 60 + now.getMinutes();
+    const lastMins = lh * 60 + lm;
+    const nextMins = lastMins + windowMinutes;
+    const nextH    = Math.floor(nextMins / 60) % 24;
+    const nextM    = nextMins % 60;
+    const nextClock = `${pad(nextH)}:${pad(nextM)}`;
+    const diffMins  = nextMins - nowMins;
+
+    if (diffMins <= 0) {
+      banner.className = 'next-nap-banner now';
+      icon.textContent = '😴'; label.textContent = 'Hora da soneca!';
+      const over = Math.abs(diffMins);
+      countdown.textContent = over < 60 ? `${over} min atrás` : `${Math.floor(over/60)}h ${over%60}m atrás`;
+      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
+    } else if (diffMins <= 30) {
+      banner.className = 'next-nap-banner soon';
+      icon.textContent = '🌤️'; label.textContent = 'Soneca em breve';
+      countdown.textContent = diffMins === 1 ? '1 minuto' : `${diffMins} minutos`;
+      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
+    } else {
+      banner.className = 'next-nap-banner';
+      icon.textContent = '⏳'; label.textContent = 'Próxima soneca em';
+      const hrs = Math.floor(diffMins / 60), mins = diffMins % 60;
+      countdown.textContent = hrs > 0 ? `${hrs}h ${pad(mins)}m` : `${mins} min`;
+      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
+    }
+  }
+
+  // ─────────────────────────────────────────
+  //  LIVE TRACKER
+  // ─────────────────────────────────────────
+  window.trackerToggle = function() {
+    if      (trackerState === 'idle')     trackerBegin();
+    else if (trackerState === 'sleeping') trackerPause();
+    else if (trackerState === 'paused')   trackerResume();
+  };
+
+  function trackerBegin() {
+    trackerStart = new Date(); trackerPauses = [];
+    trackerState = 'sleeping'; updateTrackerUI();
+  }
+
+  function trackerPause() {
+    trackerPauses.push({ start: new Date(), end: null });
+    trackerState = 'paused'; updateTrackerUI();
+  }
+
+  function trackerResume() {
+    const last = trackerPauses[trackerPauses.length - 1];
+    if (last && !last.end) last.end = new Date();
+    trackerState = 'sleeping'; updateTrackerUI();
+  }
+
+  window.trackerEnd = function() {
+    if (trackerState === 'idle') return;
+    const last = trackerPauses[trackerPauses.length - 1];
+    if (last && !last.end) last.end = new Date();
+
+    const endTime    = new Date();
+    const startStr   = formatTime(trackerStart);
+    const endStr     = formatTime(endTime);
+    const dateStr    = formatDate(trackerStart);
+    const pausesData = trackerPauses.map(p => ({
+      start: formatTime(p.start), end: formatTime(p.end || endTime)
+    }));
+
+    const hour = trackerStart.getHours();
+    let type = 'nap';
+    if (hour >= 19 || hour < 6)       type = 'night';
+    else if (hour >= 6 && hour < 10)  type = 'morning';
+
+    commitRecord({ dateStr, startStr, endStr, type, pausesData, note: '' });
+
+    trackerState = 'idle'; trackerStart = null; trackerPauses = [];
+    updateTrackerUI();
+
+    const el = document.getElementById('live-tracker');
+    el.style.background = '#e8f5ee';
+    setTimeout(() => { el.style.background = ''; }, 1100);
+  };
+
+  function updateElapsedDisplay() {
+    if (!trackerStart) return;
+    const now = new Date();
+    let ms = now - trackerStart;
+    trackerPauses.forEach(p => { ms -= ((p.end || now) - p.start); });
+    const sec = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    document.getElementById('lt-elapsed').textContent  = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    document.getElementById('lt-orb-time').textContent = `${pad(h)}:${pad(m)}`;
+  }
+
+  function updateTrackerUI() {
+    const tracker  = document.getElementById('live-tracker');
+    const orbIcon  = document.getElementById('lt-orb-icon');
+    const stLabel  = document.getElementById('lt-state-label');
+    const metaEl   = document.getElementById('lt-started');
+    const pausesEl = document.getElementById('lt-pauses');
+    const btnMain  = document.getElementById('btn-main-tracker');
+    const btnMI    = document.getElementById('btn-main-icon');
+    const btnML    = document.getElementById('btn-main-label');
+    const btnEnd   = document.getElementById('btn-end-tracker');
+
+    tracker.classList.remove('state-sleeping', 'state-paused');
+
+    if (trackerState === 'idle') {
+      stLabel.textContent = 'Rastreador ao vivo';
+      document.getElementById('lt-elapsed').textContent = '00:00:00';
+      orbIcon.textContent = '🌙';
+      document.getElementById('lt-orb-time').textContent = formatTime(new Date());
+      metaEl.textContent = 'Pressione iniciar para começar';
+      pausesEl.innerHTML = '';
+      btnMain.className = 'btn-tracker-main start';
+      btnMI.textContent = '▶'; btnML.textContent = 'Iniciar sono';
+      btnEnd.disabled = true;
+
+    } else if (trackerState === 'sleeping') {
+      tracker.classList.add('state-sleeping');
+      stLabel.textContent = '● Dormindo agora';
+      orbIcon.textContent = '😴';
+      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
+      renderLivePauseChips(pausesEl);
+      btnMain.className = 'btn-tracker-main pause';
+      btnMI.textContent = '⏸'; btnML.textContent = 'Pausar';
+      btnEnd.disabled = false;
+      updateElapsedDisplay();
+
+    } else if (trackerState === 'paused') {
+      tracker.classList.add('state-paused');
+      stLabel.textContent = '⏸ Em pausa';
+      orbIcon.textContent = '⏸';
+      document.getElementById('lt-orb-time').textContent = '';
+      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
+      renderLivePauseChips(pausesEl);
+      btnMain.className = 'btn-tracker-main resume';
+      btnMI.textContent = '▶'; btnML.textContent = 'Continuar';
+      btnEnd.disabled = false;
+    }
+  }
+
+  function renderLivePauseChips(container) {
+    container.innerHTML = trackerPauses.map((p, i) => {
+      const end = p.end ? formatTime(p.end) : 'agora';
+      return `<span class="pause-chip">⏸ Pausa ${i+1}: ${formatTime(p.start)}–${end}</span>`;
+    }).join('');
+  }
+
+  // ─────────────────────────────────────────
+  //  MANUAL PAUSES EDITOR
+  // ─────────────────────────────────────────
+  window.addPauseRow = function(startVal = '', endVal = '') {
+    manualPauseCount++;
+    const id   = manualPauseCount;
+    const list = document.getElementById('pauses-list');
+    const row  = document.createElement('div');
+    row.className = 'pause-row';
+    row.id = 'pause-row-' + id;
+    row.innerHTML = `
+      <span class="pr-label">Início</span>
+      <input type="time" id="p-start-${id}" value="${startVal}">
+      <span class="pr-label">Fim</span>
+      <input type="time" id="p-end-${id}" value="${endVal}">
+      <button class="pause-remove" onclick="removePauseRow(${id})" title="Remover">×</button>
+    `;
+    list.appendChild(row);
+  };
+
+  window.removePauseRow = function(id) {
+    const row = document.getElementById('pause-row-' + id);
+    if (row) row.remove();
+  };
+
+  function getManualPauses() {
+    return Array.from(document.querySelectorAll('.pause-row')).reduce((acc, row) => {
+      const m = row.id.match(/pause-row-(\d+)/);
+      if (!m) return acc;
+      const n = m[1];
+      const s = document.getElementById('p-start-' + n)?.value;
+      const e = document.getElementById('p-end-'   + n)?.value;
+      if (s && e) acc.push({ start: s, end: e });
+      return acc;
+    }, []);
+  }
+
+  // ─────────────────────────────────────────
+  //  MANUAL ADD
+  // ─────────────────────────────────────────
+  window.fillNow = function() {
+    const now = new Date();
+    document.getElementById('inp-start').value = formatTime(now);
+    document.getElementById('inp-date').value  = formatDate(now);
+  };
+
+  window.addSleep = function() {
+    const date  = document.getElementById('inp-date').value;
+    const start = document.getElementById('inp-start').value;
+    const end   = document.getElementById('inp-end').value;
+    const type  = document.getElementById('inp-type').value;
+    const note  = document.getElementById('inp-note').value;
+
+    if (!date || !start || !end) { alert('Preencha data, início e fim!'); return; }
+
+    commitRecord({ dateStr: date, startStr: start, endStr: end, type, pausesData: getManualPauses(), note });
+
+    document.getElementById('inp-note').value = '';
+    document.getElementById('pauses-list').innerHTML = '';
+    manualPauseCount = 0;
+  };
+
+  function commitRecord({ dateStr, startStr, endStr, type, pausesData, note }) {
+    const id     = Date.now();
+    const record = { id, date: dateStr, start: startStr, end: endStr, type, pauses: pausesData || [], note: note || '' };
+    push(recordsRef, record); // Firebase faz o broadcast para todos automaticamente
+  }
+
+  // ─────────────────────────────────────────
+  //  DELETE
+  // ─────────────────────────────────────────
+  window.deleteSleep = function(id) {
+    const key = fbKeys[id];
+    if (!key) return;
+    remove(ref(db, 'sleepRecords/' + key));
+  };
+
+  // ─────────────────────────────────────────
+  //  RENDER
+  // ─────────────────────────────────────────
+  function renderTable() {
+    const tbody = document.getElementById('sleep-log');
+    document.getElementById('count-badge').textContent =
+      sleepRecords.length + ' registro' + (sleepRecords.length !== 1 ? 's' : '');
+
+    if (sleepRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-emoji">🌙</div><p>Nenhum sono registrado ainda.<br>Adicione o primeiro acima!</p></div></td></tr>`;
+      return;
+    }
+
+    const typeMap = {
+      night:   ['🌙 Noturno', 'tag-night'],
+      nap:     ['☀️ Soneca',  'tag-nap'],
+      morning: ['🌅 Manhã',   'tag-morning']
+    };
+
+    tbody.innerHTML = sleepRecords.map(r => {
+      const [label, cls] = typeMap[r.type] || ['—', ''];
+      const dur   = durationStr(parseMinutes(r.start), parseMinutes(r.end));
+      const dateF = r.date
+        ? new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
+        : '—';
+      const pausesTxt = (r.pauses && r.pauses.length > 0)
+        ? r.pauses.map(p => `${p.start}–${p.end}`).join('<br>')
+        : '—';
+      return `<tr>
+        <td data-label="Data">${dateF}</td>
+        <td data-label="Tipo"><span class="tag ${cls}">${label}</span></td>
+        <td data-label="Início">${r.start}</td>
+        <td data-label="Fim">${r.end}</td>
+        <td data-label="Duração"><span class="duration-pill">${dur}</span></td>
+        <td data-label="Pausas" class="pause-cell">${pausesTxt}</td>
+        <td data-label="Obs." class="note-cell">${r.note || '—'}</td>
+        <td><button class="delete-btn" onclick="deleteSleep(${r.id})" title="Excluir">×</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function updateSummary() {
+    const todayStr  = formatDate(new Date());
+    const todayRecs = sleepRecords.filter(r => r.date === todayStr);
+    let total = 0, nights = 0, naps = 0;
+    todayRecs.forEach(r => {
+      total  += durationMinutes(parseMinutes(r.start), parseMinutes(r.end));
+      if (r.type === 'night' || r.type === 'morning') nights++;
+      if (r.type === 'nap') naps++;
+    });
+    const h = Math.floor(total / 60), m = total % 60;
+    const s = `${h}h ${m.toString().padStart(2,'0')}m`;
+    document.getElementById('sum-total').textContent = s;
+    document.getElementById('sum-night').textContent = nights;
+    document.getElementById('sum-nap').textContent   = naps;
+  }
+
+  // ─────────────────────────────────────────
+  //  HELPERS
+  // ─────────────────────────────────────────
+  function formatDate(d) { return d.toISOString().split('T')[0]; }
+  function formatTime(d) { return d.toTimeString().slice(0, 5); }
+  function pad(n)        { return n.toString().padStart(2, '0'); }
+  function parseMinutes(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+  function durationStr(s,e) { let d=e-s; if(d<0)d+=1440; return `${Math.floor(d/60)}h ${(d%60).toString().padStart(2,'0')}m`; }
+  function durationMinutes(s,e) { let d=e-s; if(d<0)d+=1440; return d; }
+
+  window.toggleSidebar = function() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  };
+</script>
+</body>
+</html>
