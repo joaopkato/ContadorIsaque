@@ -297,9 +297,8 @@
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #fdfaf7; }
   .tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11.5px; font-weight: 500; }
-  .tag-night   { background: var(--moon-soft);  color: var(--moon); }
-  .tag-nap     { background: var(--sun-soft);   color: var(--sun); }
-  .tag-morning { background: var(--green-soft); color: var(--green); }
+  .tag-night { background: var(--moon-soft); color: var(--moon); }
+  .tag-nap   { background: var(--sun-soft);  color: var(--sun); }
   .duration-pill {
     background: var(--accent-soft); color: var(--accent);
     font-family: 'Lora', serif; font-size: 12px; font-weight: 600;
@@ -313,17 +312,24 @@
   }
   .delete-btn:hover { color: var(--red); background: var(--red-soft); }
 
-  /* ── Notes ── */
-  .notes-block {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 22px 26px; box-shadow: var(--shadow);
+  /* ── Date filter ── */
+  .filter-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; flex-wrap: wrap;
   }
-  .notes-block textarea {
-    width: 100%; border: none; outline: none; resize: none;
-    font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text);
-    background: transparent; line-height: 1.7; min-height: 90px;
+  .filter-bar label { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .filter-bar input[type="date"] {
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    background: var(--surface); color: var(--text); outline: none; transition: border 0.2s;
   }
-  .notes-block textarea::placeholder { color: #ccc; }
+  .filter-bar input[type="date"]:focus { border-color: var(--moon); }
+  .filter-clear {
+    font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--border);
+    border-radius: 7px; padding: 5px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .filter-clear:hover { background: var(--bg); color: var(--text); }
 
   /* ── Empty state ── */
   .empty-state { text-align: center; padding: 36px 20px; color: var(--muted); }
@@ -394,7 +400,6 @@
     tbody td:empty { display: none; }
     tbody td::before { content: attr(data-label); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); min-width: 60px; flex-shrink: 0; }
     tbody td:last-child { justify-content: flex-end; margin-top: 4px; }
-    .notes-block { padding: 14px 16px; }
     .divider { margin: 18px 0; }
     .section-heading { margin-bottom: 10px; }
   }
@@ -514,7 +519,6 @@
           <select id="inp-type">
             <option value="night">🌙 Sono noturno</option>
             <option value="nap">☀️ Soneca</option>
-            <option value="morning">🌅 Manhã</option>
           </select>
         </div>
         <div class="input-group" style="align-self:flex-end;">
@@ -548,6 +552,12 @@
       <span class="badge" id="count-badge">0 registros</span>
     </div>
 
+    <div class="filter-bar">
+      <label>Filtrar por data</label>
+      <input type="date" id="filter-date" onchange="applyFilter()">
+      <button class="filter-clear" onclick="clearFilter()">✕ Limpar</button>
+    </div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -573,14 +583,6 @@
           </tr>
         </tbody>
       </table>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- Notas do dia -->
-    <div class="section-heading"><h2>Notas do dia</h2></div>
-    <div class="notes-block">
-      <textarea id="daily-notes" placeholder="Anote observações gerais, mudanças na rotina, dentes nascendo, vacinas..."></textarea>
     </div>
 
     </div><!-- /mobile-content -->
@@ -621,7 +623,6 @@
 
   const recordsRef = ref(db, 'sleepRecords');
   const windowRef  = ref(db, 'settings/windowMinutes');
-  const notesRef   = ref(db, 'settings/dailyNotes');
 
   // ─────────────────────────────────────────
   //  STATE (local — sincronizado pelo Firebase)
@@ -674,20 +675,6 @@
     }
   });
 
-  // ── Listener: notas do dia ────────────────
-  onValue(notesRef, snap => {
-    if (snap.exists()) {
-      document.getElementById('daily-notes').value = snap.val();
-    }
-  });
-
-  // Debounce para notas (só salva 1s após parar de digitar)
-  let notesTimer;
-  document.getElementById('daily-notes').addEventListener('input', () => {
-    clearTimeout(notesTimer);
-    notesTimer = setTimeout(() => set(notesRef, document.getElementById('daily-notes').value), 1000);
-  });
-
   // Ticker a cada segundo
   setInterval(() => {
     if (trackerState === 'idle')     document.getElementById('lt-orb-time').textContent = formatTime(new Date());
@@ -736,7 +723,7 @@
     const sub       = document.getElementById('nnb-sub');
 
     const todayNaps = sleepRecords
-      .filter(r => r.date === todayStr && (r.type === 'nap' || r.type === 'morning'))
+      .filter(r => r.date === todayStr && r.type === 'nap')
       .sort((a, b) => b.end.localeCompare(a.end));
 
     if (todayNaps.length === 0) {
@@ -817,8 +804,7 @@
 
     const hour = trackerStart.getHours();
     let type = 'nap';
-    if (hour >= 19 || hour < 6)       type = 'night';
-    else if (hour >= 6 && hour < 10)  type = 'morning';
+    if (hour >= 19 || hour < 6) type = 'night';
 
     commitRecord({ dateStr, startStr, endStr, type, pausesData, note: '' });
 
@@ -977,22 +963,26 @@
   //  RENDER
   // ─────────────────────────────────────────
   function renderTable() {
-    const tbody = document.getElementById('sleep-log');
-    document.getElementById('count-badge').textContent =
-      sleepRecords.length + ' registro' + (sleepRecords.length !== 1 ? 's' : '');
+    const tbody   = document.getElementById('sleep-log');
+    const visible = activeFilter
+      ? sleepRecords.filter(r => r.date === activeFilter)
+      : sleepRecords;
 
-    if (sleepRecords.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-emoji">🌙</div><p>Nenhum sono registrado ainda.<br>Adicione o primeiro acima!</p></div></td></tr>`;
+    document.getElementById('count-badge').textContent =
+      visible.length + ' registro' + (visible.length !== 1 ? 's' : '')
+      + (activeFilter ? ' (filtrado)' : '');
+
+    if (visible.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-emoji">🌙</div><p>${activeFilter ? 'Nenhum registro nessa data.' : 'Nenhum sono registrado ainda.<br>Adicione o primeiro acima!'}</p></div></td></tr>`;
       return;
     }
 
     const typeMap = {
-      night:   ['🌙 Noturno', 'tag-night'],
-      nap:     ['☀️ Soneca',  'tag-nap'],
-      morning: ['🌅 Manhã',   'tag-morning']
+      night: ['🌙 Noturno', 'tag-night'],
+      nap:   ['☀️ Soneca',  'tag-nap'],
     };
 
-    tbody.innerHTML = sleepRecords.map(r => {
+    tbody.innerHTML = visible.map(r => {
       const [label, cls] = typeMap[r.type] || ['—', ''];
       const dur   = durationStr(parseMinutes(r.start), parseMinutes(r.end));
       const dateF = r.date
@@ -1020,8 +1010,8 @@
     let total = 0, nights = 0, naps = 0;
     todayRecs.forEach(r => {
       total  += durationMinutes(parseMinutes(r.start), parseMinutes(r.end));
-      if (r.type === 'night' || r.type === 'morning') nights++;
-      if (r.type === 'nap') naps++;
+      if (r.type === 'night') nights++;
+      if (r.type === 'nap')   naps++;
     });
     const h = Math.floor(total / 60), m = total % 60;
     const s = `${h}h ${m.toString().padStart(2,'0')}m`;
@@ -1029,6 +1019,22 @@
     document.getElementById('sum-night').textContent = nights;
     document.getElementById('sum-nap').textContent   = naps;
   }
+
+  // ─────────────────────────────────────────
+  //  FILTRO POR DATA
+  // ─────────────────────────────────────────
+  let activeFilter = null;
+
+  window.applyFilter = function() {
+    activeFilter = document.getElementById('filter-date').value || null;
+    renderTable();
+  };
+
+  window.clearFilter = function() {
+    activeFilter = null;
+    document.getElementById('filter-date').value = '';
+    renderTable();
+  };
 
   // ─────────────────────────────────────────
   //  HELPERS
