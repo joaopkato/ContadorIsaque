@@ -64,53 +64,54 @@
     padding: 2px 8px; border-radius: 20px; font-weight: 500;
   }
 
-  /* ── Next nap banner ── */
-  .next-nap-banner {
-    display: flex; align-items: center; gap: 20px;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 24px;
-    margin-bottom: 20px;
+  /* ── Schedule Settings ── */
+  .schedule-config-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-bottom: 20px;
     box-shadow: var(--shadow);
-    animation: fadeUp 0.3s ease both;
-    transition: border-color 0.4s, background 0.4s;
-    flex-wrap: wrap;
   }
-  .next-nap-banner.soon {
-    border-color: var(--sun);
-    background: linear-gradient(135deg, #fffdf5, #fef8e3);
+  .config-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .config-row label { font-size: 13px; font-weight: 500; }
+  .config-row select {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
   }
-  .next-nap-banner.now {
-    border-color: var(--green);
-    background: linear-gradient(135deg, #f4fdf9, #e2f6ef);
+  .ww-inputs { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ww-input-group {
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--surface2); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
   }
-  .nnb-icon { font-size: 30px; flex-shrink: 0; }
-  .nnb-body { flex: 1; min-width: 160px; }
-  .nnb-label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--muted); font-weight: 500; margin-bottom: 2px;
+  .ww-input-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+  .ww-input-group input {
+    width: 60px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px;
+    text-align: center; font-family: 'DM Sans', sans-serif; outline: none;
   }
-  .next-nap-banner.soon .nnb-label { color: var(--sun); }
-  .next-nap-banner.now  .nnb-label { color: var(--green); }
-  .nnb-countdown {
-    font-family: 'Lora', serif; font-size: 26px; font-weight: 600;
-    color: var(--text); letter-spacing: -0.3px;
-  }
-  .next-nap-banner.soon .nnb-countdown { color: var(--sun); }
-  .next-nap-banner.now  .nnb-countdown { color: var(--green); }
-  .nnb-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
 
-  .nnb-config { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
-  .nnb-config label { font-size: 11px; color: var(--muted); white-space: nowrap; }
-  .nnb-config input[type="number"] {
-    width: 58px; border: 1px solid var(--border); border-radius: 8px;
-    padding: 5px 8px; font-family: 'DM Sans', sans-serif; font-size: 13px;
-    background: var(--bg); color: var(--text); outline: none; text-align: center;
-    transition: border 0.2s;
+  /* ── Timeline / Schedule ── */
+  .timeline {
+    display: flex; flex-direction: column; gap: 0; margin-bottom: 20px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px;
   }
-  .nnb-config input[type="number"]:focus { border-color: var(--moon); }
-  .nnb-config span { font-size: 12px; color: var(--muted); }
+  .timeline-item {
+    display: flex; gap: 16px; position: relative; padding-bottom: 16px;
+  }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-item::before {
+    content: ''; position: absolute; left: 15px; top: 32px; bottom: 0;
+    width: 2px; background: var(--border); z-index: 1;
+  }
+  .timeline-item:last-child::before { display: none; }
+  .tl-icon {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--surface2);
+    border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 14px; z-index: 2; flex-shrink: 0;
+  }
+  .tl-icon.done { background: var(--green-soft); border-color: var(--green); }
+  .tl-icon.next { background: var(--sun-soft); border-color: var(--sun); }
+  .tl-content { flex: 1; padding-top: 4px; }
+  .tl-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; display: flex; align-items: center; gap: 8px;}
+  .tl-time { font-family: 'Lora', serif; font-size: 16px; color: var(--accent); }
+  .tl-meta { font-size: 12px; color: var(--muted); }
 
   /* ── Summary ── */
   .summary-grid {
@@ -304,7 +305,14 @@
     font-family: 'Lora', serif; font-size: 12px; font-weight: 600;
     padding: 2px 9px; border-radius: 20px;
   }
-  .note-cell { color: var(--muted); font-size: 12px; max-width: 160px; }
+  .note-input {
+    width: 100%; border: 1px solid transparent; background: transparent;
+    font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--muted);
+    padding: 4px; border-radius: 4px; transition: all 0.2s;
+  }
+  .note-input:hover, .note-input:focus {
+    border-color: var(--border); background: var(--surface); color: var(--text); outline: none;
+  }
   .pause-cell { color: var(--sun); font-size: 11.5px; }
   .delete-btn {
     background: none; border: none; cursor: pointer; color: #ddd;
@@ -336,6 +344,25 @@
   .empty-state .empty-emoji { font-size: 34px; margin-bottom: 8px; }
   .empty-state p { font-size: 13.5px; }
 
+  /* ── Toast (Undo) ── */
+  .toast-wrap {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--text); color: white; padding: 14px 24px; border-radius: 12px;
+    display: flex; align-items: center; gap: 16px; font-size: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2); opacity: 0; 
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1000;
+  }
+  .toast-wrap.show {
+    transform: translateX(-50%) translateY(0); opacity: 1;
+  }
+  .toast-btn {
+    background: transparent; border: none; color: #ffeb85; font-weight: 600;
+    cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;
+    font-family: 'DM Sans', sans-serif; transition: color 0.2s;
+  }
+  .toast-btn:hover { color: #fff; text-decoration: underline; }
+
   /* ── Topbar (sempre visível) ── */
   .topbar {
     display: flex; align-items: center; gap: 12px;
@@ -359,7 +386,6 @@
   .conn-badge.error      { border-color: var(--red);   background: var(--red-soft);   color: var(--red); }
 
   @media (max-width: 768px) {
-  @media (max-width: 768px) {
     .topbar { padding: 12px 16px; }
     .topbar-title { font-size: 16px; }
     .conn-badge span.conn-label { display: none; }
@@ -370,11 +396,6 @@
     .summary-card:nth-child(3) { grid-column: span 2; }
     .summary-card { padding: 12px 14px; }
     .summary-card .sc-value { font-size: 20px; }
-    .next-nap-banner { flex-direction: column; padding: 14px 16px; gap: 10px; margin-bottom: 14px; }
-    .nnb-body { width: 100%; }
-    .nnb-countdown { font-size: 26px; }
-    .nnb-icon { display: none; }
-    .nnb-config { margin-left: 0; width: 100%; justify-content: flex-start; border-top: 1px solid var(--border); padding-top: 10px; }
     .live-tracker { flex-direction: row; align-items: flex-start; flex-wrap: wrap; gap: 12px; border-radius: var(--radius) var(--radius) 0 0; padding: 16px; }
     .lt-orb { width: 54px; height: 54px; flex-shrink: 0; }
     .lt-orb .orb-icon { font-size: 20px; }
@@ -402,6 +423,7 @@
     tbody td:last-child { justify-content: flex-end; margin-top: 4px; }
     .divider { margin: 18px 0; }
     .section-heading { margin-bottom: 10px; }
+    .toast-wrap { width: 90%; justify-content: space-between; bottom: 16px; }
   }
 
   @media (min-width: 769px) {
@@ -416,7 +438,6 @@
 </style>
 </head>
 <body>
-  <!-- ── Topbar ── -->
   <header class="topbar">
     <span class="topbar-title">🌙 Sono do Bebê</span>
     <div class="conn-badge" id="conn-badge">
@@ -425,17 +446,15 @@
     </div>
   </header>
 
-  <!-- ── Main ── -->
   <main class="main">
     <div class="mobile-content">
 
     <header class="page-header">
       <span class="page-emoji">🌙</span>
       <div class="page-title" contenteditable="true" data-placeholder="Nome do bebê...">Controle de Sono do Bebê</div>
-      <div class="page-subtitle" contenteditable="true" data-placeholder="Adicione uma descrição...">Registro diário de sono · Atualize os horários conforme necessário</div>
+      <div class="page-subtitle" contenteditable="true" data-placeholder="Adicione uma descrição...">Registro diário de sono · Sincronizado na nuvem</div>
     </header>
 
-    <!-- Summary -->
     <div class="summary-grid">
       <div class="summary-card">
         <div class="sc-icon">😴</div>
@@ -454,27 +473,32 @@
       </div>
     </div>
 
-    <!-- Próxima soneca -->
-    <div class="next-nap-banner" id="next-nap-banner">
-      <div class="nnb-icon" id="nnb-icon">⏳</div>
-      <div class="nnb-body">
-        <div class="nnb-label" id="nnb-label">Próxima soneca em</div>
-        <div class="nnb-countdown" id="nnb-countdown">—</div>
-        <div class="nnb-sub" id="nnb-sub">Registre uma soneca para calcular</div>
+    <div class="section-heading"><h2>Cronograma e Janelas de Vigília</h2></div>
+    
+    <div class="schedule-config-wrap">
+      <div class="config-row">
+        <label>Número de Sonecas por dia:</label>
+        <select id="sel-nap-count" onchange="renderWWInputs()">
+          <option value="1">1 Soneca</option>
+          <option value="2">2 Sonecas</option>
+          <option value="3" selected>3 Sonecas</option>
+          <option value="4">4 Sonecas</option>
+          <option value="5">5 Sonecas</option>
+        </select>
+        <button class="btn btn-ghost" onclick="saveScheduleSettings()" style="margin-left:auto; padding: 4px 12px;">Salvar Ajustes</button>
       </div>
-      <div class="nnb-config">
-        <label>Janela de vigília</label>
-        <input type="number" id="inp-window" min="15" max="360" step="5" value="90" onchange="saveWindow()">
-        <span>min</span>
-      </div>
+      <div class="ww-inputs" id="ww-inputs-container">
+        </div>
+    </div>
+
+    <div class="timeline" id="daily-timeline">
+      <div class="empty-state" style="padding: 10px;">Calculando cronograma...</div>
     </div>
 
     <div class="divider"></div>
 
-    <!-- Registrar Sono -->
     <div class="section-heading"><h2>Registrar Sono</h2></div>
 
-    <!-- Live tracker -->
     <div class="live-tracker" id="live-tracker">
       <div class="lt-orb" id="lt-orb">
         <span class="orb-icon" id="lt-orb-icon">🌙</span>
@@ -483,7 +507,7 @@
       <div class="lt-body">
         <div class="lt-state-label" id="lt-state-label">Rastreador ao vivo</div>
         <div class="lt-elapsed" id="lt-elapsed">00:00:00</div>
-        <div class="lt-meta"><span id="lt-started">Pressione iniciar para começar</span></div>
+        <div class="lt-meta"><span id="lt-started">Pressione iniciar para começar (Sincronizado)</span></div>
         <div class="lt-pauses" id="lt-pauses"></div>
         <div class="lt-buttons">
           <button class="btn-tracker-main start" id="btn-main-tracker" onclick="trackerToggle()">
@@ -497,7 +521,6 @@
       </div>
     </div>
 
-    <!-- Manual form -->
     <div class="manual-form">
       <div class="manual-form-title">Ou adicionar manualmente</div>
 
@@ -526,14 +549,12 @@
         </div>
       </div>
 
-      <!-- Pauses -->
       <div class="pauses-section">
         <div class="pauses-section-label">Pausas</div>
         <div id="pauses-list"></div>
         <button class="btn-add-pause" onclick="addPauseRow()">＋ Adicionar pausa</button>
       </div>
 
-      <!-- Observações -->
       <div class="input-group">
         <label>Observações</label>
         <textarea id="inp-note" placeholder="Anotações gerais sobre esse período de sono..."></textarea>
@@ -546,7 +567,6 @@
 
     <div class="divider"></div>
 
-    <!-- Histórico -->
     <div class="section-heading">
       <h2>Histórico</h2>
       <span class="badge" id="count-badge">0 registros</span>
@@ -568,7 +588,7 @@
             <th>Fim</th>
             <th>Duração</th>
             <th>Pausas</th>
-            <th>Observação</th>
+            <th>Observação (Editável)</th>
             <th></th>
           </tr>
         </thead>
@@ -585,55 +605,53 @@
       </table>
     </div>
 
-    </div><!-- /mobile-content -->
-  </main>
+    </div></main>
 
-<!-- ══════════════════════════════════════════
-     PASSO 1 — Cole aqui o bloco <script type="module"> que o
-     Firebase gera para você (Project Settings > Your apps > CDN).
-     Ele tem esta forma:
-
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/...";
-  ...
-  const app = initializeApp(firebaseConfig);
-
-     PASSO 2 — Substitua COLE_SUA_DATABASE_URL abaixo pela URL
-     do seu Realtime Database (ex: https://nome-default-rtdb.firebaseio.com)
-═══════════════════════════════════════════ -->
+  <div class="toast-wrap" id="undo-toast">
+    <span id="toast-msg">Registro excluído com sucesso.</span>
+    <button class="toast-btn" onclick="undoDelete()">Desfazer</button>
+  </div>
 
 <script type="module">
   import { initializeApp }                           from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getDatabase, ref, push, remove, onValue, set }
+  import { getDatabase, ref, push, remove, update, onValue, set }
                                                      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
-  // ─── ▼ COLE SUAS CREDENCIAIS AQUI ▼ ───────────────────────────
   const firebaseConfig = {
-  apiKey: "AIzaSyAKLX1Y1LZfd2jOSb8rvLuguqsLU6Duj7U",
-  authDomain: "contadorisaque-8632b.firebaseapp.com",
-  databaseURL: "https://contadorisaque-8632b-default-rtdb.firebaseio.com",
-  projectId: "contadorisaque-8632b",
-  storageBucket: "contadorisaque-8632b.firebasestorage.app",
-  messagingSenderId: "280747908225",
-  appId: "1:280747908225:web:82b9f91810d3691bd58180"
+    apiKey: "AIzaSyAKLX1Y1LZfd2jOSb8rvLuguqsLU6Duj7U",
+    authDomain: "contadorisaque-8632b.firebaseapp.com",
+    databaseURL: "https://contadorisaque-8632b-default-rtdb.firebaseio.com",
+    projectId: "contadorisaque-8632b",
+    storageBucket: "contadorisaque-8632b.firebasestorage.app",
+    messagingSenderId: "280747908225",
+    appId: "1:280747908225:web:82b9f91810d3691bd58180"
   };
-  // ─── ▲ ────────────────────────────────────────────────────────
 
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  const recordsRef = ref(db, 'sleepRecords');
-  const windowRef  = ref(db, 'settings/windowMinutes');
+  const recordsRef   = ref(db, 'sleepRecords');
+  const liveTrackerRef = ref(db, 'liveTracker');
+  const scheduleConfigRef = ref(db, 'settings/scheduleConfig');
 
   // ─────────────────────────────────────────
-  //  STATE (local — sincronizado pelo Firebase)
+  //  STATE
   // ─────────────────────────────────────────
-  let sleepRecords   = [];          // preenchido pelo listener
-  let windowMinutes  = 90;
+  let sleepRecords   = [];          
+  let fbKeys         = {};          
+  let manualPauseCount = 0;
+  
+  // Trackers State
   let trackerState   = 'idle';
   let trackerStart   = null;
   let trackerPauses  = [];
-  let manualPauseCount = 0;
-  let fbKeys         = {};          // id numérico → firebase key
+
+  // Schedule Config
+  let scheduleConfig = { napCount: 3, wakeWindows: [90, 120, 120, 150] };
+
+  // Undo State
+  let lastDeletedRecord = null;
+  let toastTimeout = null;
 
   // ─────────────────────────────────────────
   //  INIT
@@ -641,11 +659,9 @@
   const todayObj = new Date();
   document.getElementById('inp-date').value  = formatDate(todayObj);
   document.getElementById('inp-start').value = formatTime(todayObj);
-
-  // Mostra indicador de conexão
   showStatus('connecting');
 
-  // ── Listener: registros de sono ──────────
+  // ── Listener: Registros de sono ──────────
   onValue(recordsRef, snap => {
     sleepRecords = [];
     fbKeys = {};
@@ -654,7 +670,6 @@
       sleepRecords.push(r);
       fbKeys[r.id] = child.key;
     });
-    // Ordena do mais recente para o mais antigo
     sleepRecords.sort((a, b) => {
       const da = a.date + 'T' + a.start;
       const db2 = b.date + 'T' + b.start;
@@ -662,24 +677,44 @@
     });
     renderTable();
     updateSummary();
-    updateNextNap();
+    buildDailySchedule();
     showStatus('connected');
   });
 
-  // ── Listener: janela de vigília ───────────
-  onValue(windowRef, snap => {
+  // ── Listener: Configurações do Cronograma ──────────
+  onValue(scheduleConfigRef, snap => {
     if (snap.exists()) {
-      windowMinutes = snap.val();
-      document.getElementById('inp-window').value = windowMinutes;
-      updateNextNap();
+      scheduleConfig = snap.val();
+    } else {
+      set(scheduleConfigRef, scheduleConfig); 
     }
+    document.getElementById('sel-nap-count').value = scheduleConfig.napCount;
+    renderWWInputs();
+    buildDailySchedule();
   });
 
-  // Ticker a cada segundo
+  // ── Listener: Rastreador ao Vivo ──────────
+  onValue(liveTrackerRef, snap => {
+    if (snap.exists()) {
+      const data = snap.val();
+      trackerState = data.state || 'idle';
+      trackerStart = data.start ? new Date(data.start) : null;
+      trackerPauses = (data.pauses || []).map(p => ({
+        start: new Date(p.start),
+        end: p.end ? new Date(p.end) : null
+      }));
+    } else {
+      trackerState = 'idle';
+      trackerStart = null;
+      trackerPauses = [];
+    }
+    updateTrackerUI();
+  });
+
   setInterval(() => {
     if (trackerState === 'idle')     document.getElementById('lt-orb-time').textContent = formatTime(new Date());
     if (trackerState === 'sleeping') updateElapsedDisplay();
-    updateNextNap();
+    if (new Date().getSeconds() === 0) buildDailySchedule(); 
   }, 1000);
 
   // ─────────────────────────────────────────
@@ -701,71 +736,123 @@
   }
 
   // ─────────────────────────────────────────
-  //  JANELA DE VIGÍLIA
+  //  CONFIGURAÇÃO DO CRONOGRAMA
   // ─────────────────────────────────────────
-  window.saveWindow = function() {
-    const val = parseInt(document.getElementById('inp-window').value);
-    if (!val || val < 10) return;
-    windowMinutes = val;
-    set(windowRef, val);
-    updateNextNap();
+  window.renderWWInputs = function() {
+    const napCount = parseInt(document.getElementById('sel-nap-count').value);
+    const container = document.getElementById('ww-inputs-container');
+    container.innerHTML = '';
+    
+    for (let i = 0; i <= napCount; i++) {
+      let label = i === napCount ? 'Pré-Noturno (min)' : `Pré-Soneca ${i+1} (min)`;
+      let val = scheduleConfig.wakeWindows[i] || 120; 
+      
+      container.innerHTML += `
+        <div class="ww-input-group">
+          <label>${label}</label>
+          <input type="number" id="ww-inp-${i}" value="${val}" min="15" step="5">
+        </div>
+      `;
+    }
   };
 
-  // ─────────────────────────────────────────
-  //  PRÓXIMA SONECA
-  // ─────────────────────────────────────────
-  function updateNextNap() {
-    const todayStr  = formatDate(new Date());
-    const banner    = document.getElementById('next-nap-banner');
-    const icon      = document.getElementById('nnb-icon');
-    const label     = document.getElementById('nnb-label');
-    const countdown = document.getElementById('nnb-countdown');
-    const sub       = document.getElementById('nnb-sub');
+  window.saveScheduleSettings = function() {
+    const napCount = parseInt(document.getElementById('sel-nap-count').value);
+    let newWWs = [];
+    for (let i = 0; i <= napCount; i++) {
+      const val = parseInt(document.getElementById(`ww-inp-${i}`).value) || 120;
+      newWWs.push(val);
+    }
+    scheduleConfig = { napCount, wakeWindows: newWWs };
+    set(scheduleConfigRef, scheduleConfig);
+  };
 
-    const todayNaps = sleepRecords
-      .filter(r => r.date === todayStr && r.type === 'nap')
-      .sort((a, b) => b.end.localeCompare(a.end));
+  function buildDailySchedule() {
+    const todayStr = formatDate(new Date());
+    const timeline = document.getElementById('daily-timeline');
+    
+    let wakeUpRecord = sleepRecords.find(r => r.type === 'night' && r.date === todayStr);
+    
+    let wakeTimeMins = null;
+    let wakeUpText = '';
 
-    if (todayNaps.length === 0) {
-      banner.className = 'next-nap-banner';
-      icon.textContent = '⏳'; label.textContent = 'Próxima soneca';
-      countdown.textContent = '—'; sub.textContent = 'Nenhuma soneca registrada hoje';
+    if (wakeUpRecord) {
+      wakeTimeMins = parseMinutes(wakeUpRecord.end);
+      wakeUpText = wakeUpRecord.end;
+    } else {
+      timeline.innerHTML = `<div class="empty-state" style="padding:10px;">Registre o fim do último sono noturno para calcular o cronograma de hoje.</div>`;
       return;
     }
 
-    const lastEnd  = todayNaps[0].end;
-    const [lh, lm] = lastEnd.split(':').map(Number);
-    const now      = new Date();
-    const nowMins  = now.getHours() * 60 + now.getMinutes();
-    const lastMins = lh * 60 + lm;
-    const nextMins = lastMins + windowMinutes;
-    const nextH    = Math.floor(nextMins / 60) % 24;
-    const nextM    = nextMins % 60;
-    const nextClock = `${pad(nextH)}:${pad(nextM)}`;
-    const diffMins  = nextMins - nowMins;
+    let todayNaps = sleepRecords
+      .filter(r => r.date === todayStr && r.type === 'nap')
+      .sort((a, b) => a.start.localeCompare(b.start));
 
-    if (diffMins <= 0) {
-      banner.className = 'next-nap-banner now';
-      icon.textContent = '😴'; label.textContent = 'Hora da soneca!';
-      const over = Math.abs(diffMins);
-      countdown.textContent = over < 60 ? `${over} min atrás` : `${Math.floor(over/60)}h ${over%60}m atrás`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
-    } else if (diffMins <= 30) {
-      banner.className = 'next-nap-banner soon';
-      icon.textContent = '🌤️'; label.textContent = 'Soneca em breve';
-      countdown.textContent = diffMins === 1 ? '1 minuto' : `${diffMins} minutos`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
-    } else {
-      banner.className = 'next-nap-banner';
-      icon.textContent = '⏳'; label.textContent = 'Próxima soneca em';
-      const hrs = Math.floor(diffMins / 60), mins = diffMins % 60;
-      countdown.textContent = hrs > 0 ? `${hrs}h ${pad(mins)}m` : `${mins} min`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
+    let html = '';
+    let currentBaseMins = wakeTimeMins;
+
+    html += `
+      <div class="timeline-item">
+        <div class="tl-icon done">☀️</div>
+        <div class="tl-content">
+          <div class="tl-title">Acordou <span class="tl-time" style="margin-left:auto; color:var(--text);">${wakeUpText}</span></div>
+          <div class="tl-meta">Fim do sono noturno</div>
+        </div>
+      </div>
+    `;
+
+    const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+
+    for (let i = 0; i <= scheduleConfig.napCount; i++) {
+      let isNight = (i === scheduleConfig.napCount);
+      let wwMins = scheduleConfig.wakeWindows[i];
+      let expectedStartMins = currentBaseMins + wwMins;
+      let expectedClock = `${pad(Math.floor(expectedStartMins/60)%24)}:${pad(expectedStartMins%60)}`;
+      
+      let actualNap = isNight ? null : todayNaps[i];
+
+      if (actualNap) {
+        html += `
+          <div class="timeline-item">
+            <div class="tl-icon done">😴</div>
+            <div class="tl-content">
+              <div class="tl-title">Soneca ${i+1} <span class="tl-time" style="margin-left:auto; color:var(--text);">${actualNap.start} – ${actualNap.end}</span></div>
+              <div class="tl-meta">Realizada (Janela foi de ${durationStr(currentBaseMins, parseMinutes(actualNap.start))})</div>
+            </div>
+          </div>
+        `;
+        currentBaseMins = parseMinutes(actualNap.end);
+      } else {
+        let diff = expectedStartMins - nowMins;
+        let isNext = diff > -120 && diff < 120 && !html.includes('tl-icon next'); 
+        let iconClass = isNext ? 'next' : '';
+        let title = isNight ? 'Sono Noturno' : `Soneca ${i+1}`;
+        let icon = isNight ? '🌙' : '⏳';
+        
+        let metaText = '';
+        if (diff < 0) metaText = `<span style="color:var(--red);">Atrasada em ${Math.abs(diff)}m</span>`;
+        else if (diff === 0) metaText = `<span style="color:var(--green);">Agora!</span>`;
+        else metaText = `Prevista para daqui a ${Math.floor(diff/60)}h ${diff%60}m (Janela: ${wwMins}m)`;
+
+        html += `
+          <div class="timeline-item">
+            <div class="tl-icon ${iconClass}">${icon}</div>
+            <div class="tl-content">
+              <div class="tl-title">${title} <span class="tl-time" style="margin-left:auto;">${expectedClock}</span></div>
+              <div class="tl-meta">${metaText}</span></div>
+            </div>
+          </div>
+        `;
+        
+        if (!isNight) currentBaseMins = expectedStartMins + 60; 
+      }
     }
+
+    timeline.innerHTML = html;
   }
 
   // ─────────────────────────────────────────
-  //  LIVE TRACKER
+  //  LIVE TRACKER (CLOUD SYNCED)
   // ─────────────────────────────────────────
   window.trackerToggle = function() {
     if      (trackerState === 'idle')     trackerBegin();
@@ -774,42 +861,48 @@
   };
 
   function trackerBegin() {
-    trackerStart = new Date(); trackerPauses = [];
-    trackerState = 'sleeping'; updateTrackerUI();
+    const startIso = new Date().toISOString();
+    set(liveTrackerRef, { state: 'sleeping', start: startIso, pauses: [] });
   }
 
   function trackerPause() {
-    trackerPauses.push({ start: new Date(), end: null });
-    trackerState = 'paused'; updateTrackerUI();
+    const newPause = { start: new Date().toISOString(), end: null };
+    const updatedPauses = [...trackerPauses, newPause];
+    update(liveTrackerRef, { state: 'paused', pauses: updatedPauses });
   }
 
   function trackerResume() {
-    const last = trackerPauses[trackerPauses.length - 1];
-    if (last && !last.end) last.end = new Date();
-    trackerState = 'sleeping'; updateTrackerUI();
+    let updatedPauses = [...trackerPauses];
+    const last = updatedPauses[updatedPauses.length - 1];
+    if (last && !last.end) {
+      last.end = new Date().toISOString();
+    }
+    update(liveTrackerRef, { state: 'sleeping', pauses: updatedPauses });
   }
 
   window.trackerEnd = function() {
     if (trackerState === 'idle') return;
-    const last = trackerPauses[trackerPauses.length - 1];
-    if (last && !last.end) last.end = new Date();
-
+    
     const endTime    = new Date();
+    let updatedPauses = [...trackerPauses];
+    const last = updatedPauses[updatedPauses.length - 1];
+    if (last && !last.end) last.end = endTime.toISOString();
+
     const startStr   = formatTime(trackerStart);
     const endStr     = formatTime(endTime);
     const dateStr    = formatDate(trackerStart);
-    const pausesData = trackerPauses.map(p => ({
-      start: formatTime(p.start), end: formatTime(p.end || endTime)
+    const pausesData = updatedPauses.map(p => ({
+      start: formatTime(new Date(p.start)), 
+      end: formatTime(new Date(p.end || endTime))
     }));
 
     const hour = trackerStart.getHours();
     let type = 'nap';
-    if (hour >= 19 || hour < 6) type = 'night';
+    if (hour >= 18 || hour < 6) type = 'night';
 
     commitRecord({ dateStr, startStr, endStr, type, pausesData, note: '' });
 
-    trackerState = 'idle'; trackerStart = null; trackerPauses = [];
-    updateTrackerUI();
+    set(liveTrackerRef, { state: 'idle' });
 
     const el = document.getElementById('live-tracker');
     el.style.background = '#e8f5ee';
@@ -820,7 +913,11 @@
     if (!trackerStart) return;
     const now = new Date();
     let ms = now - trackerStart;
-    trackerPauses.forEach(p => { ms -= ((p.end || now) - p.start); });
+    trackerPauses.forEach(p => { 
+      let startP = new Date(p.start);
+      let endP = p.end ? new Date(p.end) : now;
+      ms -= (endP - startP); 
+    });
     const sec = Math.max(0, Math.floor(ms / 1000));
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     document.getElementById('lt-elapsed').textContent  = `${pad(h)}:${pad(m)}:${pad(s)}`;
@@ -845,7 +942,7 @@
       document.getElementById('lt-elapsed').textContent = '00:00:00';
       orbIcon.textContent = '🌙';
       document.getElementById('lt-orb-time').textContent = formatTime(new Date());
-      metaEl.textContent = 'Pressione iniciar para começar';
+      metaEl.textContent = 'Pressione iniciar para começar (Sincronizado)';
       pausesEl.innerHTML = '';
       btnMain.className = 'btn-tracker-main start';
       btnMI.textContent = '▶'; btnML.textContent = 'Iniciar sono';
@@ -855,7 +952,7 @@
       tracker.classList.add('state-sleeping');
       stLabel.textContent = '● Dormindo agora';
       orbIcon.textContent = '😴';
-      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
+      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa(s)`;
       renderLivePauseChips(pausesEl);
       btnMain.className = 'btn-tracker-main pause';
       btnMI.textContent = '⏸'; btnML.textContent = 'Pausar';
@@ -867,7 +964,7 @@
       stLabel.textContent = '⏸ Em pausa';
       orbIcon.textContent = '⏸';
       document.getElementById('lt-orb-time').textContent = '';
-      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
+      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa(s)`;
       renderLivePauseChips(pausesEl);
       btnMain.className = 'btn-tracker-main resume';
       btnMI.textContent = '▶'; btnML.textContent = 'Continuar';
@@ -877,8 +974,9 @@
 
   function renderLivePauseChips(container) {
     container.innerHTML = trackerPauses.map((p, i) => {
-      const end = p.end ? formatTime(p.end) : 'agora';
-      return `<span class="pause-chip">⏸ Pausa ${i+1}: ${formatTime(p.start)}–${end}</span>`;
+      const startF = formatTime(new Date(p.start));
+      const endF = p.end ? formatTime(new Date(p.end)) : 'agora';
+      return `<span class="pause-chip">⏸ Pausa ${i+1}: ${startF}–${endF}</span>`;
     }).join('');
   }
 
@@ -947,17 +1045,59 @@
   function commitRecord({ dateStr, startStr, endStr, type, pausesData, note }) {
     const id     = Date.now();
     const record = { id, date: dateStr, start: startStr, end: endStr, type, pauses: pausesData || [], note: note || '' };
-    push(recordsRef, record); // Firebase faz o broadcast para todos automaticamente
+    push(recordsRef, record);
   }
 
   // ─────────────────────────────────────────
-  //  DELETE
+  //  UPDATE NOTE INLINE
+  // ─────────────────────────────────────────
+  window.updateNoteInline = function(id, newNote) {
+    const key = fbKeys[id];
+    if (!key) return;
+    update(ref(db, 'sleepRecords/' + key), { note: newNote });
+  };
+
+  // ─────────────────────────────────────────
+  //  DELETE & UNDO
   // ─────────────────────────────────────────
   window.deleteSleep = function(id) {
     const key = fbKeys[id];
     if (!key) return;
-    remove(ref(db, 'sleepRecords/' + key));
+    
+    // Salva o registro temporariamente caso o usuário queira desfazer
+    lastDeletedRecord = sleepRecords.find(r => r.id === id);
+
+    remove(ref(db, 'sleepRecords/' + key)).then(() => {
+      showToast();
+    });
   };
+
+  window.undoDelete = function() {
+    if (!lastDeletedRecord) return;
+    
+    // Empurra o registro de volta para o Firebase
+    push(recordsRef, lastDeletedRecord).then(() => {
+      hideToast();
+      lastDeletedRecord = null;
+    });
+  };
+
+  function showToast() {
+    const toast = document.getElementById('undo-toast');
+    toast.classList.add('show');
+
+    if (toastTimeout) clearTimeout(toastTimeout);
+    
+    // Oculta após 5 segundos
+    toastTimeout = setTimeout(() => {
+      hideToast();
+    }, 5000);
+  }
+
+  function hideToast() {
+    const toast = document.getElementById('undo-toast');
+    toast.classList.remove('show');
+  }
 
   // ─────────────────────────────────────────
   //  RENDER
@@ -998,7 +1138,11 @@
         <td data-label="Fim">${r.end}</td>
         <td data-label="Duração"><span class="duration-pill">${dur}</span></td>
         <td data-label="Pausas" class="pause-cell">${pausesTxt}</td>
-        <td data-label="Obs." class="note-cell">${r.note || '—'}</td>
+        <td data-label="Obs.">
+          <input type="text" class="note-input" value="${r.note || ''}" 
+                 placeholder="Sem observações..." 
+                 onchange="updateNoteInline(${r.id}, this.value)">
+        </td>
         <td><button class="delete-btn" onclick="deleteSleep(${r.id})" title="Excluir">×</button></td>
       </tr>`;
     }).join('');
