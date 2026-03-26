@@ -566,7 +566,7 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-  import { getDatabase, ref, push, remove, onValue, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+  import { getDatabase, ref, push, remove, onValue, set, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyAKLX1Y1LZfd2jOSb8rvLuguqsLU6Duj7U",
@@ -583,39 +583,57 @@
 
   const recordsRef = ref(db, 'sleepRecords');
   const windowRef  = ref(db, 'settings/windowMinutes');
-  const activeTrackerRef = ref(db, 'activeTracker'); // Nova referência para o rastreador ativo
+  const activeTrackerRef = ref(db, 'liveTracker/active');
+  const offsetRef = ref(db, ".info/serverTimeOffset");
 
-  let sleepRecords   = [];
-  let windowMinutes  = 90;
+  let sleepRecords     = [];
+  let windowMinutes    = 90;
+  let serverTimeOffset = 0;
+  let fbKeys           = {};
+
+  // Estado Local Sincronizado
   let trackerState   = 'idle';
-  let trackerStart   = null;
+  let trackerStart   = null; 
   let trackerPauses  = [];
   let manualPauseCount = 0;
-  let fbKeys         = {};
 
-  const todayObj = new Date();
-  document.getElementById('inp-date').value  = formatDate(todayObj);
-  document.getElementById('inp-start').value = formatTime(todayObj);
+  // 1. Sincronizar o relógio com o servidor do Firebase
+  onValue(offsetRef, (snap) => {
+    serverTimeOffset = snap.val() || 0;
+  });
 
-  showStatus('connecting');
+  function getServerTime() {
+    return Date.now() + serverTimeOffset;
+  }
 
+  // 2. Ouvir o Histórico
   onValue(recordsRef, snap => {
-    sleepRecords = [];
-    fbKeys = {};
+    sleepRecords = []; fbKeys = {};
     snap.forEach(child => {
       const r = child.val();
       sleepRecords.push(r);
       fbKeys[r.id] = child.key;
     });
-    sleepRecords.sort((a, b) => {
-      const da = a.date + 'T' + a.start;
-      const db2 = b.date + 'T' + b.start;
-      return db2.localeCompare(da);
-    });
+    sleepRecords.sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start));
     renderTable();
     updateSummary();
     updateNextNap();
     showStatus('connected');
+  });
+
+  // 3. Ouvir o Rastreador Ativo (Sincroniza todos os dispositivos)
+  onValue(activeTrackerRef, snap => {
+    const data = snap.val();
+    if (data) {
+      trackerState = data.state;
+      trackerStart = data.start; 
+      trackerPauses = data.pauses || [];
+    } else {
+      trackerState = 'idle';
+      trackerStart = null;
+      trackerPauses = [];
+    }
+    updateTrackerUI();
   });
 
   onValue(windowRef, snap => {
@@ -626,181 +644,76 @@
     }
   });
 
-  // Listener para o rastreador ativo (recupera estado ao abrir a página)
-  onValue(activeTrackerRef, snap => {
-    const data = snap.val();
-    if (data) {
-      trackerState = data.state;
-      trackerStart = data.start ? new Date(data.start) : null;
-      trackerPauses = (data.pauses || []).map(p => ({
-        start: new Date(p.start),
-        end: p.end ? new Date(p.end) : null
-      }));
-    } else {
-      trackerState = 'idle';
-      trackerStart = null;
-      trackerPauses = [];
-    }
-    updateTrackerUI();
-  });
-
+  // 4. Loop de Atualização do Relógio
   setInterval(() => {
-    if (trackerState === 'idle') document.getElementById('lt-orb-time').textContent = formatTime(new Date());
-    if (trackerState === 'sleeping') updateElapsedDisplay();
+    const now = getServerTime();
+    if (trackerState === 'idle') {
+      document.getElementById('lt-orb-time').textContent = formatTime(new Date(now));
+    } else if (trackerState === 'sleeping') {
+      updateElapsedDisplay();
+    }
     updateNextNap();
   }, 1000);
 
-  function syncTrackerToFirebase() {
-    set(activeTrackerRef, {
-      state: trackerState,
-      start: trackerStart ? trackerStart.toISOString() : null,
-      pauses: trackerPauses.map(p => ({
-        start: p.start.toISOString(),
-        end: p.end ? p.end.toISOString() : null
-      }))
-    });
-  }
-
-  function showStatus(state) {
-    const badge = document.getElementById('conn-badge');
-    const icon  = document.getElementById('conn-icon');
-    const label = document.getElementById('conn-label');
-    const map   = {
-      connecting: ['🔄', '',          'Conectando…'],
-      connected:  ['🟢', 'connected', 'Sincronizado'],
-      error:      ['🔴', 'error',     'Erro de conexão']
-    };
-    const [ic, cls, txt] = map[state] || map.error;
-    if (icon)  icon.textContent  = ic;
-    if (label) label.textContent = txt;
-    if (badge) badge.className   = 'conn-badge' + (cls ? ' ' + cls : '');
-  }
-
-  window.saveWindow = function() {
-    const val = parseInt(document.getElementById('inp-window').value);
-    if (!val || val < 10) return;
-    windowMinutes = val;
-    set(windowRef, val);
-    updateNextNap();
-  };
-
-  function updateNextNap() {
-    const todayStr  = formatDate(new Date());
-    const banner    = document.getElementById('next-nap-banner');
-    const icon      = document.getElementById('nnb-icon');
-    const label     = document.getElementById('nnb-label');
-    const countdown = document.getElementById('nnb-countdown');
-    const sub       = document.getElementById('nnb-sub');
-
-    const todayNaps = sleepRecords
-      .filter(r => r.date === todayStr && r.type === 'nap')
-      .sort((a, b) => b.end.localeCompare(a.end));
-
-    if (todayNaps.length === 0) {
-      banner.className = 'next-nap-banner';
-      icon.textContent = '⏳'; label.textContent = 'Próxima soneca';
-      countdown.textContent = '—'; sub.textContent = 'Nenhuma soneca registrada hoje';
-      return;
-    }
-
-    const lastEnd  = todayNaps[0].end;
-    const [lh, lm] = lastEnd.split(':').map(Number);
-    const now      = new Date();
-    const nowMins  = now.getHours() * 60 + now.getMinutes();
-    const lastMins = lh * 60 + lm;
-    const nextMins = lastMins + windowMinutes;
-    const nextH    = Math.floor(nextMins / 60) % 24;
-    const nextM    = nextMins % 60;
-    const nextClock = `${pad(nextH)}:${pad(nextM)}`;
-    const diffMins  = nextMins - nowMins;
-
-    if (diffMins <= 0) {
-      banner.className = 'next-nap-banner now';
-      icon.textContent = '😴'; label.textContent = 'Hora da soneca!';
-      const over = Math.abs(diffMins);
-      countdown.textContent = over < 60 ? `${over} min atrás` : `${Math.floor(over/60)}h ${over%60}m atrás`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
-    } else if (diffMins <= 30) {
-      banner.className = 'next-nap-banner soon';
-      icon.textContent = '🌤️'; label.textContent = 'Soneca em breve';
-      countdown.textContent = diffMins === 1 ? '1 minuto' : `${diffMins} minutos`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
-    } else {
-      banner.className = 'next-nap-banner';
-      icon.textContent = '⏳'; label.textContent = 'Próxima soneca em';
-      const hrs = Math.floor(diffMins / 60), mins = diffMins % 60;
-      countdown.textContent = hrs > 0 ? `${hrs}h ${pad(mins)}m` : `${mins} min`;
-      sub.textContent = `Prevista às ${nextClock} · Última: ${lastEnd}`;
-    }
-  }
-
-  window.trackerToggle = function() {
-    if      (trackerState === 'idle')     trackerBegin();
-    else if (trackerState === 'sleeping') trackerPause();
-    else if (trackerState === 'paused')   trackerResume();
-  };
-
-  function trackerBegin() {
-    trackerStart = new Date(); trackerPauses = [];
-    trackerState = 'sleeping'; 
-    syncTrackerToFirebase();
-    updateTrackerUI();
-  }
-
-  function trackerPause() {
-    trackerPauses.push({ start: new Date(), end: null });
-    trackerState = 'paused'; 
-    syncTrackerToFirebase();
-    updateTrackerUI();
-  }
-
-  function trackerResume() {
-    const last = trackerPauses[trackerPauses.length - 1];
-    if (last && !last.end) last.end = new Date();
-    trackerState = 'sleeping'; 
-    syncTrackerToFirebase();
-    updateTrackerUI();
-  }
-
-  window.trackerEnd = function() {
-    if (trackerState === 'idle') return;
-    const last = trackerPauses[trackerPauses.length - 1];
-    if (last && !last.end) last.end = new Date();
-
-    const endTime    = new Date();
-    const startStr   = formatTime(trackerStart);
-    const endStr     = formatTime(endTime);
-    const dateStr    = formatDate(trackerStart);
-    const pausesData = trackerPauses.map(p => ({
-      start: formatTime(p.start), end: formatTime(p.end || endTime)
-    }));
-
-    const hour = trackerStart.getHours();
-    let type = 'nap';
-    if (hour >= 19 || hour < 6) type = 'night';
-
-    commitRecord({ dateStr, startStr, endStr, type, pausesData, note: '' });
-
-    trackerState = 'idle'; trackerStart = null; trackerPauses = [];
-    set(activeTrackerRef, null); // Limpa o rastreador no Firebase
-    updateTrackerUI();
-
-    const el = document.getElementById('live-tracker');
-    el.style.background = '#e8f5ee';
-    setTimeout(() => { el.style.background = ''; }, 1100);
-  };
-
   function updateElapsedDisplay() {
     if (!trackerStart) return;
-    const now = new Date();
+    const now = getServerTime();
     let ms = now - trackerStart;
-    trackerPauses.forEach(p => { ms -= ((p.end || now) - p.start); });
+    trackerPauses.forEach(p => {
+      const end = p.end || now;
+      ms -= (end - p.start);
+    });
     const sec = Math.max(0, Math.floor(ms / 1000));
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     document.getElementById('lt-elapsed').textContent  = `${pad(h)}:${pad(m)}:${pad(s)}`;
     document.getElementById('lt-orb-time').textContent = `${pad(h)}:${pad(m)}`;
   }
 
+  // 5. Ações do Rastreador (Push para o Firebase)
+  window.trackerToggle = function() {
+    if (trackerState === 'idle') {
+      set(activeTrackerRef, {
+        state: 'sleeping',
+        start: serverTimestamp(),
+        pauses: []
+      });
+    } 
+    else if (trackerState === 'sleeping') {
+      const p = [...trackerPauses, { start: serverTimestamp(), end: null }];
+      set(activeTrackerRef, { state: 'paused', start: trackerStart, pauses: p });
+    } 
+    else if (trackerState === 'paused') {
+      const p = [...trackerPauses];
+      if (p.length > 0) p[p.length - 1].end = serverTimestamp();
+      set(activeTrackerRef, { state: 'sleeping', start: trackerStart, pauses: p });
+    }
+  };
+
+  window.trackerEnd = function() {
+    if (trackerState === 'idle') return;
+    const nowTs = getServerTime();
+    const startTime = new Date(trackerStart);
+    const endTime = new Date(nowTs);
+    
+    const pausesData = trackerPauses.map(p => ({
+      start: formatTime(new Date(p.start)),
+      end: formatTime(new Date(p.end || nowTs))
+    }));
+
+    const hour = startTime.getHours();
+    commitRecord({
+      dateStr: formatDate(startTime),
+      startStr: formatTime(startTime),
+      endStr: formatTime(endTime),
+      type: (hour >= 19 || hour < 6) ? 'night' : 'nap',
+      pausesData,
+      note: ''
+    });
+
+    set(activeTrackerRef, null); // Limpa para todos
+  };
+
+  // UI e Helpers
   function updateTrackerUI() {
     const tracker  = document.getElementById('live-tracker');
     const orbIcon  = document.getElementById('lt-orb-icon');
@@ -818,189 +731,174 @@
       stLabel.textContent = 'Rastreador ao vivo';
       document.getElementById('lt-elapsed').textContent = '00:00:00';
       orbIcon.textContent = '🌙';
-      document.getElementById('lt-orb-time').textContent = formatTime(new Date());
       metaEl.textContent = 'Pressione iniciar para começar';
       pausesEl.innerHTML = '';
       btnMain.className = 'btn-tracker-main start';
       btnMI.textContent = '▶'; btnML.textContent = 'Iniciar sono';
       btnEnd.disabled = true;
-
-    } else if (trackerState === 'sleeping') {
-      tracker.classList.add('state-sleeping');
-      stLabel.textContent = '● Dormindo agora';
-      orbIcon.textContent = '😴';
-      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
-      renderLivePauseChips(pausesEl);
-      btnMain.className = 'btn-tracker-main pause';
-      btnMI.textContent = '⏸'; btnML.textContent = 'Pausar';
+    } else {
       btnEnd.disabled = false;
-      updateElapsedDisplay();
-
-    } else if (trackerState === 'paused') {
-      tracker.classList.add('state-paused');
-      stLabel.textContent = '⏸ Em pausa';
-      orbIcon.textContent = '⏸';
-      document.getElementById('lt-orb-time').textContent = '';
-      metaEl.textContent = `Início: ${formatTime(trackerStart)} · ${trackerPauses.length} pausa${trackerPauses.length !== 1 ? 's' : ''}`;
+      const startStr = formatTime(new Date(trackerStart));
+      metaEl.textContent = `Início: ${startStr} · ${trackerPauses.length} pausa(s)`;
       renderLivePauseChips(pausesEl);
-      btnMain.className = 'btn-tracker-main resume';
-      btnMI.textContent = '▶'; btnML.textContent = 'Continuar';
-      btnEnd.disabled = false;
+
+      if (trackerState === 'sleeping') {
+        tracker.classList.add('state-sleeping');
+        stLabel.textContent = '● Dormindo agora';
+        orbIcon.textContent = '😴';
+        btnMain.className = 'btn-tracker-main pause';
+        btnMI.textContent = '⏸'; btnML.textContent = 'Pausar';
+      } else {
+        tracker.classList.add('state-paused');
+        stLabel.textContent = '⏸ Em pausa';
+        orbIcon.textContent = '⏸';
+        btnMain.className = 'btn-tracker-main resume';
+        btnMI.textContent = '▶'; btnML.textContent = 'Continuar';
+      }
     }
   }
 
   function renderLivePauseChips(container) {
     container.innerHTML = trackerPauses.map((p, i) => {
-      const end = p.end ? formatTime(p.end) : 'agora';
-      return `<span class="pause-chip">⏸ Pausa ${i+1}: ${formatTime(p.start)}–${end}</span>`;
+      const s = formatTime(new Date(p.start));
+      const e = p.end ? formatTime(new Date(p.end)) : '...';
+      return `<span class="pause-chip">⏸ Pausa ${i+1}: ${s}–${e}</span>`;
     }).join('');
   }
 
-  window.addPauseRow = function(startVal = '', endVal = '') {
-    manualPauseCount++;
-    const id   = manualPauseCount;
-    const list = document.getElementById('pauses-list');
-    const row  = document.createElement('div');
-    row.className = 'pause-row';
-    row.id = 'pause-row-' + id;
-    row.innerHTML = `
-      <span class="pr-label">Início</span>
-      <input type="time" id="p-start-${id}" value="${startVal}">
-      <span class="pr-label">Fim</span>
-      <input type="time" id="p-end-${id}" value="${endVal}">
-      <button class="pause-remove" onclick="removePauseRow(${id})" title="Remover">×</button>
-    `;
-    list.appendChild(row);
+  // --- RESTO DO CÓDIGO (HISTÓRICO E MANUAL) ---
+  
+  window.saveWindow = function() {
+    const val = parseInt(document.getElementById('inp-window').value);
+    if (val >= 10) set(windowRef, val);
   };
 
-  window.removePauseRow = function(id) {
-    const row = document.getElementById('pause-row-' + id);
-    if (row) row.remove();
-  };
+  function updateNextNap() {
+    const todayStr = formatDate(new Date(getServerTime()));
+    const banner = document.getElementById('next-nap-banner');
+    const countdown = document.getElementById('nnb-countdown');
+    const todayNaps = sleepRecords.filter(r => r.date === todayStr && r.type === 'nap').sort((a, b) => b.end.localeCompare(a.end));
 
-  function getManualPauses() {
-    return Array.from(document.querySelectorAll('.pause-row')).reduce((acc, row) => {
-      const m = row.id.match(/pause-row-(\d+)/);
-      if (!m) return acc;
-      const n = m[1];
-      const s = document.getElementById('p-start-' + n)?.value;
-      const e = document.getElementById('p-end-'   + n)?.value;
-      if (s && e) acc.push({ start: s, end: e });
-      return acc;
-    }, []);
-  }
-
-  window.fillNow = function() {
-    const now = new Date();
-    document.getElementById('inp-start').value = formatTime(now);
-    document.getElementById('inp-date').value  = formatDate(now);
-  };
-
-  window.addSleep = function() {
-    const date  = document.getElementById('inp-date').value;
-    const start = document.getElementById('inp-start').value;
-    const end   = document.getElementById('inp-end').value;
-    const type  = document.getElementById('inp-type').value;
-    const note  = document.getElementById('inp-note').value;
-
-    if (!date || !start || !end) { alert('Preencha data, início e fim!'); return; }
-
-    commitRecord({ dateStr: date, startStr: start, endStr: end, type, pausesData: getManualPauses(), note });
-
-    document.getElementById('inp-note').value = '';
-    document.getElementById('pauses-list').innerHTML = '';
-    manualPauseCount = 0;
-  };
-
-  function commitRecord({ dateStr, startStr, endStr, type, pausesData, note }) {
-    const id     = Date.now();
-    const record = { id, date: dateStr, start: startStr, end: endStr, type, pauses: pausesData || [], note: note || '' };
-    push(recordsRef, record);
-  }
-
-  window.deleteSleep = function(id) {
-    const key = fbKeys[id];
-    if (!key) return;
-    remove(ref(db, 'sleepRecords/' + key));
-  };
-
-  function renderTable() {
-    const tbody   = document.getElementById('sleep-log');
-    const visible = activeFilter
-      ? sleepRecords.filter(r => r.date === activeFilter)
-      : sleepRecords;
-
-    document.getElementById('count-badge').textContent =
-      visible.length + ' registro' + (visible.length !== 1 ? 's' : '')
-      + (activeFilter ? ' (filtrado)' : '');
-
-    if (visible.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-emoji">🌙</div><p>${activeFilter ? 'Nenhum registro nessa data.' : 'Nenhum sono registrado ainda.<br>Adicione o primeiro acima!'}</p></div></td></tr>`;
+    if (todayNaps.length === 0) {
+      banner.className = 'next-nap-banner';
+      countdown.textContent = '—';
       return;
     }
 
-    const typeMap = {
-      night: ['🌙 Noturno', 'tag-night'],
-      nap:   ['☀️ Soneca',  'tag-nap'],
-    };
+    const [lh, lm] = todayNaps[0].end.split(':').map(Number);
+    const now = new Date(getServerTime());
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const nextMins = (lh * 60 + lm) + windowMinutes;
+    const diff = nextMins - nowMins;
+
+    if (diff <= 0) {
+      banner.className = 'next-nap-banner now';
+      countdown.textContent = 'Já pode dormir!';
+    } else {
+      banner.className = diff <= 30 ? 'next-nap-banner soon' : 'next-nap-banner';
+      const h = Math.floor(diff/60), m = diff%60;
+      countdown.textContent = h > 0 ? `${h}h ${pad(m)}m` : `${m} min`;
+    }
+  }
+
+  window.addPauseRow = function() {
+    manualPauseCount++;
+    const id = manualPauseCount;
+    const list = document.getElementById('pauses-list');
+    const row = document.createElement('div');
+    row.className = 'pause-row';
+    row.id = 'pause-row-' + id;
+    row.innerHTML = `<span class="pr-label">Início</span><input type="time" id="p-start-${id}"><span class="pr-label">Fim</span><input type="time" id="p-end-${id}"><button class="pause-remove" onclick="removePauseRow(${id})">×</button>`;
+    list.appendChild(row);
+  };
+
+  window.removePauseRow = (id) => document.getElementById('pause-row-' + id)?.remove();
+
+  window.fillNow = () => {
+    const n = new Date(getServerTime());
+    document.getElementById('inp-start').value = formatTime(n);
+    document.getElementById('inp-date').value = formatDate(n);
+  };
+
+  window.addSleep = function() {
+    const d = document.getElementById('inp-date').value;
+    const s = document.getElementById('inp-start').value;
+    const e = document.getElementById('inp-end').value;
+    if (!d || !s || !e) return alert('Preencha os campos!');
+    
+    const ps = Array.from(document.querySelectorAll('.pause-row')).map(row => {
+      const id = row.id.split('-')[2];
+      return { start: document.getElementById('p-start-'+id).value, end: document.getElementById('p-end-'+id).value };
+    }).filter(p => p.start && p.end);
+
+    commitRecord({ dateStr: d, startStr: s, endStr: e, type: document.getElementById('inp-type').value, pausesData: ps, note: document.getElementById('inp-note').value });
+    document.getElementById('inp-note').value = '';
+    document.getElementById('pauses-list').innerHTML = '';
+  };
+
+  function commitRecord(record) {
+    push(recordsRef, { id: Date.now(), date: record.dateStr, start: record.startStr, end: record.endStr, type: record.type, pauses: record.pausesData, note: record.note });
+  }
+
+  window.deleteSleep = (id) => { if(fbKeys[id]) remove(ref(db, 'sleepRecords/' + fbKeys[id])); };
+
+  function renderTable() {
+    const tbody = document.getElementById('sleep-log');
+    const visible = activeFilter ? sleepRecords.filter(r => r.date === activeFilter) : sleepRecords;
+    document.getElementById('count-badge').textContent = visible.length + ' registro(s)';
+    
+    if (visible.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Nenhum registro.</td></tr>';
+      return;
+    }
 
     tbody.innerHTML = visible.map(r => {
-      const [label, cls] = typeMap[r.type] || ['—', ''];
-      const dur   = durationStr(parseMinutes(r.start), parseMinutes(r.end));
-      const dateF = r.date
-        ? new Date(r.date + 'T12:00:00').toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })
-        : '—';
-      const pausesTxt = (r.pauses && r.pauses.length > 0)
-        ? r.pauses.map(p => `${p.start}–${p.end}`).join('<br>')
-        : '—';
+      const dur = durationStr(parseM(r.start), parseM(r.end));
       return `<tr>
-        <td data-label="Data">${dateF}</td>
-        <td data-label="Tipo"><span class="tag ${cls}">${label}</span></td>
-        <td data-label="Início">${r.start}</td>
-        <td data-label="Fim">${r.end}</td>
-        <td data-label="Duração"><span class="duration-pill">${dur}</span></td>
-        <td data-label="Pausas" class="pause-cell">${pausesTxt}</td>
-        <td data-label="Obs." class="note-cell">${r.note || '—'}</td>
-        <td><button class="delete-btn" onclick="deleteSleep(${r.id})" title="Excluir">×</button></td>
+        <td data-label="Data">${r.date}</td>
+        <td data-label="Tipo"><span class="tag ${r.type==='night'?'tag-night':'tag-nap'}">${r.type==='night'?'🌙':'☀️'}</span></td>
+        <td>${r.start}</td><td>${r.end}</td>
+        <td><span class="duration-pill">${dur}</span></td>
+        <td class="pause-cell">${(r.pauses||[]).map(p=>p.start+'-'+p.end).join('<br>')}</td>
+        <td class="note-cell">${r.note||''}</td>
+        <td><button class="delete-btn" onclick="deleteSleep(${r.id})">×</button></td>
       </tr>`;
     }).join('');
   }
 
   function updateSummary() {
-    const todayStr  = formatDate(new Date());
-    const todayRecs = sleepRecords.filter(r => r.date === todayStr);
-    let total = 0, nights = 0, naps = 0;
+    const today = formatDate(new Date(getServerTime()));
+    const todayRecs = sleepRecords.filter(r => r.date === today);
+    let total = 0, ni = 0, na = 0;
     todayRecs.forEach(r => {
-      total  += durationMinutes(parseMinutes(r.start), parseMinutes(r.end));
-      if (r.type === 'night') nights++;
-      if (r.type === 'nap')   naps++;
+      total += durM(parseM(r.start), parseM(r.end));
+      r.type === 'night' ? ni++ : na++;
     });
-    const h = Math.floor(total / 60), m = total % 60;
-    const s = `${h}h ${m.toString().padStart(2,'0')}m`;
-    document.getElementById('sum-total').textContent = s;
-    document.getElementById('sum-night').textContent = nights;
-    document.getElementById('sum-nap').textContent   = naps;
+    document.getElementById('sum-total').textContent = `${Math.floor(total/60)}h ${pad(total%60)}m`;
+    document.getElementById('sum-night').textContent = ni;
+    document.getElementById('sum-nap').textContent = na;
   }
 
   let activeFilter = null;
-
-  window.applyFilter = function() {
-    activeFilter = document.getElementById('filter-date').value || null;
-    renderTable();
-  };
-
-  window.clearFilter = function() {
-    activeFilter = null;
-    document.getElementById('filter-date').value = '';
-    renderTable();
-  };
+  window.applyFilter = () => { activeFilter = document.getElementById('filter-date').value; renderTable(); };
+  window.clearFilter = () => { activeFilter = null; document.getElementById('filter-date').value = ''; renderTable(); };
 
   function formatDate(d) { return d.toISOString().split('T')[0]; }
   function formatTime(d) { return d.toTimeString().slice(0, 5); }
-  function pad(n)        { return n.toString().padStart(2, '0'); }
-  function parseMinutes(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
-  function durationStr(s,e) { let d=e-s; if(d<0)d+=1440; return `${Math.floor(d/60)}h ${(d%60).toString().padStart(2,'0')}m`; }
-  function durationMinutes(s,e) { let d=e-s; if(d<0)d+=1440; return d; }
+  function pad(n) { return n.toString().padStart(2,'0'); }
+  function parseM(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+  function durM(s,e) { let d=e-s; return d<0?d+1440:d; }
+  function durationStr(s,e) { const d=durM(s,e); return `${Math.floor(d/60)}h ${pad(d%60)}m`; }
+  function showStatus(s) { 
+    const b = document.getElementById('conn-badge');
+    b.className = 'conn-badge ' + (s==='connected'?'connected':'');
+    document.getElementById('conn-label').textContent = s==='connected'?'Sincronizado':'Conectando...';
+  }
+
+  // Inicializar inputs
+  const now = new Date(getServerTime());
+  document.getElementById('inp-date').value = formatDate(now);
+  document.getElementById('inp-start').value = formatTime(now);
 
 </script>
 </body>
